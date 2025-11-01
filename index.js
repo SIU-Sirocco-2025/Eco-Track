@@ -1,0 +1,51 @@
+const express = require('express');
+const methodOverride = require('method-override')
+// const bodyParser = require('body-parser')
+const path = require('path');
+const cookieParser = require('cookie-parser');
+const session = require('express-session');
+const flash = require('express-flash');
+const moment = require('moment')
+
+// Route
+const clientRoutes = require('./routers/client/index.route');
+const adminRoutes = require('./routers/admin/index.route');
+const system = require('./config/system');
+
+
+// Main
+const app = express();
+app.use(methodOverride('_method'))
+const port = process.env.PORT || 3000;
+
+// app.use(bodyParser.urlencoded({ extended: false }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
+// set view engine PUG
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'pug');
+
+//Flash message
+app.use(cookieParser('afasdhgwerw'));
+app.use(session({ cookie: { maxAge: 60000 }}));
+app.use(flash());
+
+// App local variables
+app.locals.moment = moment;
+app.locals.prefixAdmin = system.prefixAdmin;
+
+// TinyMCE
+app.use('/tinymce', express.static(path.join(__dirname, 'node_modules', 'tinymce')));
+// End TinyMCE
+
+clientRoutes(app);
+adminRoutes(app);
+
+app.use((req, res) => {
+    res.status(404).render('client/pages/errors/404', {
+        title: 'Trang không tồn tại'
+    });
+});
+
+app.listen(port, () => console.log(`http://localhost:${port}`));
