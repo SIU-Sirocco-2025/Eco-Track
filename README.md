@@ -1,92 +1,22 @@
+# 📋 Tổng Quan
 
-# Template Web Node.js + PugJS
+**SayItNow** là một nền tảng **mã nguồn mở**, được phát triển bởi đội **SIU_Sirocco** đến từ **Trường Đại học Quốc tế Sài Gòn (SIU)** để tham gia cuộc thi Olympic Tin học Sinh viên - Mã nguồn mở năm 2025.  
+Dự án được xây dựng nhằm giúp **người dân phản ánh các vấn đề về cơ sở hạ tầng đô thị** (ổ gà, đèn đường hỏng, ngập nước, v.v.) một cách **nhanh chóng, minh bạch và hiệu quả**.
 
-Đây là template dự án web sử dụng **Node.js**, **Express**, **PugJS** với cấu trúc tách biệt cho client và admin, hỗ trợ flash message, session, static file, và tích hợp TinyMCE.
-
-## Tính năng
-
-- Quản lý layout, partials, mixins cho client và admin.
-- Sử dụng PugJS cho view engine.
-- Tích hợp Bootstrap, FontAwesome, Bootstrap Icons.
-- Hỗ trợ flash message, session, cookie.
-- Tích hợp TinyMCE cho soạn thảo văn bản.
-- Tách biệt route/controller/model cho client và admin.
-- Hỗ trợ custom middleware.
-
-## Cài đặt
-
-### 1. Clone dự án
-
-```sh
-git clone https://github.com/SmallChicken2k5/template-web-nodejs-pugjs.git
-cd template-web-nodejs-pugjs
-```
-
-### 2. Cài đặt package
-
-```sh
-npm install
-```
-
-### 3. Cấu hình môi trường
-
-Tạo file `.env` (nếu chưa có):
-
-```
-PORT=3000
-MONGODB_URI=mongodb://localhost:27017/mydatabase
-```
-
-### 4. Chạy dự án
-
-```sh
-npm start
-```
-Hoặc:
-```sh
-node index.js
-```
-
-Truy cập: [http://localhost:3000](http://localhost:3000)
-
-## Cấu trúc thư mục
-
-```
-.
-├── controllers/      # Controllers cho client và admin
-├── helpers/          # Helper functions
-├── middlewares/      # Middlewares cho client và admin
-├── models/           # Models (nếu dùng database)
-├── public/           # Static files (css, js, images)
-├── routers/          # Routers cho client và admin
-├── views/            # Pug templates (layouts, partials, pages, mixins)
-├── config/           # Cấu hình hệ thống
-├── index.js          # File chạy chính
-├── package.json
-└── .env
-```
-
-## Thêm route mới
-
-- **Client:** Thêm file route/controller vào `routers/client/` và `controllers/client/`.
-- **Admin:** Thêm file route/controller vào `routers/admin/` và `controllers/admin/`.
-
-## Thêm trang mới
-
-1. Tạo file `.pug` trong `views/client/pages/` hoặc `views/admin/pages/`.
-2. Kế thừa layout phù hợp:
-		```pug
-		extends ../../layouts/default.pug
-		block main
-			// Nội dung trang
-		```
-
-## Ghi chú
-
-- Đảm bảo đã cài đặt MongoDB nếu sử dụng database.
-- Để thay đổi đường dẫn admin, sửa `prefixAdmin` trong `config/system.js`.
-- Static files cho client nằm ở `public/client/`, cho admin ở `public/admin/`.
+Nền tảng hướng tới việc **tăng cường kết nối giữa cộng đồng và chính quyền địa phương**, góp phần xây dựng **thành phố thông minh hơn – nơi tiếng nói của người dân được lắng nghe và hành động.**
 
 ---
 
-**Template by [SmallChicken2k5](https://github.com/SmallChicken2k5)**
+## 🎯 Mục Tiêu
+
+- 🗣 **Trao quyền tiếng nói cho cộng đồng**  
+  Giúp người dân dễ dàng gửi phản ánh, theo dõi tiến độ và nhận phản hồi từ cơ quan chức năng.  
+
+- 🏙 **Cải thiện chất lượng hạ tầng đô thị**  
+  Cung cấp dữ liệu tập trung về tình trạng đô thị để hỗ trợ công tác quản lý và quy hoạch.  
+
+- 💡 **Thúc đẩy tính minh bạch và trách nhiệm**  
+  Mọi phản ánh đều được hiển thị công khai, giúp người dân giám sát tiến trình xử lý.  
+
+- 🤝 **Kết nối người dân và chính quyền**  
+  Xây dựng cầu nối hai chiều để cùng giải quyết vấn đề nhanh hơn và hiệu quả hơn.  
