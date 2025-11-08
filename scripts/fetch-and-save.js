@@ -18,6 +18,7 @@ let isRunning = false;
 
 // Bản đồ city -> model (14 quận)
 const CITY_MAP = [
+  { keys: ['ho chi minh city'], model: models.HCMCReading, label: 'Thành phố Hồ Chí Minh' },
   { keys: ['quan mot'], model: models.District1Reading, label: 'Quận 1' },
   { keys: ['quan hai'], model: models.District2Reading, label: 'Quận 2' },
   { keys: ['quan ba'], model: models.District3Reading, label: 'Quận 3' },
