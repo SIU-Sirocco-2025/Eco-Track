@@ -1,0 +1,15 @@
+mixin aqiBadge(aqius)
+  -
+    let cls = 'aqi-unknown', label = 'Không rõ';
+    const v = Number(aqius);
+    if (!isNaN(v)) {
+      if (v <= 50) { cls = 'aqi-good'; label = 'Tốt'; }
+      else if (v <= 100) { cls = 'aqi-moderate'; label = 'Trung bình'; }
+      else if (v <= 150) { cls = 'aqi-unhealthy'; label = 'Nhạy cảm'; }
+      else if (v <= 200) { cls = 'aqi-unhealthy'; label = 'Xấu'; }
+      else if (v <= 300) { cls = 'aqi-very-unhealthy'; label = 'Rất xấu'; }
+      else { cls = 'aqi-hazardous'; label = 'Nguy hại'; }
+    }
+  span(class=`aqi-badge ${cls}` title=`Chỉ số AQI: ${aqius}`)
+    i.bi.bi-wind.me-1
+    | AQI #{aqius} - #{label}

@@ -1,3 +1,35 @@
-header.navbar.navbar-dark.bg-dark
-  .container
-    a.navbar-brand(href='/') Eco-Track
+header.site-header
+  nav.navbar.navbar-expand-lg.navbar-dark.eco-navbar.py-2
+    .container
+      a.navbar-brand.d-flex.align-items-center(href='/')
+        img(src='/client/image/logo.png', alt='Eco-Track Logo', height='36', class='me-2')
+        span.fw-bold Eco Track
+        span.badge.bg-success.ms-2.d-none.d-sm-inline Hồ Chí Minh
+      button.navbar-toggler(
+        type='button'
+        data-bs-toggle='collapse'
+        data-bs-target='#mainNav'
+        aria-controls='mainNav'
+        aria-expanded='false'
+        aria-label='Toggle navigation'
+      )
+        span.navbar-toggler-icon
+      .collapse.navbar-collapse#mainNav
+        ul.navbar-nav.me-auto.mb-2.mb-lg-0
+          li.nav-item
+            a.nav-link(href='/') Trang chủ
+          li.nav-item
+            a.nav-link(href='/#air') Chất lượng không khí
+          li.nav-item
+            a.nav-link(href='/#weather') Thời tiết
+          li.nav-item
+            a.nav-link(href='/#forecast') Dự báo
+          li.nav-item
+            a.nav-link(href='/about') Giới thiệu
+        .ms-lg-3.d-flex.align-items-center.gap-2
+          span.aqi-badge.aqi-unknown(title='Air Quality Index' data-aqi='--')
+            i.bi.bi-wind.me-1
+            | AQI --
+          span.weather-pill(title='Nhiệt độ hiện tại')
+            i.bi.bi-thermometer-half.me-1
+            span(data-temp) --°

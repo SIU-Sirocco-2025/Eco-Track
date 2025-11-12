@@ -36,3 +36,62 @@
 }
 
 /* End Show Alert */
+
+/* Brand palette (green like logo) */
+:root{
+  --brand-900:#0b5d2a;
+  --brand-800:#0f6f31;
+  --brand-700:#13843a;
+  --brand-600:#169444;
+  --brand-500:#1faa53;
+  --brand-50:#e8f7ee;
+}
+
+/* Header */
+.eco-navbar{
+  background: linear-gradient(135deg,var(--brand-700) 0%,var(--brand-500) 100%);
+  color:#fff;
+  box-shadow: 0 2px 10px rgba(0,0,0,.15);
+}
+.eco-navbar .navbar-brand{
+  color:#fff;
+  font-weight:700;
+  letter-spacing:.3px;
+}
+.eco-navbar .navbar-brand:hover{ color:#eafff1; }
+
+/* Footer */
+.eco-footer{
+  background: linear-gradient(135deg,var(--brand-900),var(--brand-700));
+  color:#eafff1;
+}
+.eco-footer a{
+  color:#c8ffd9;
+  text-decoration:none;
+}
+.eco-footer a:hover{
+  color:#ffffff;
+  text-decoration:underline;
+}
+
+/* Optional subtle page bg */
+body{ background-color: var(--brand-50); }
+
+/* Navbar */
+.eco-navbar .nav-link{ color:#e9fff0; opacity:.9; }
+.eco-navbar .nav-link:hover,
+.eco-navbar .nav-link.active{ color:#fff; }
+
+/* AQI badge + Weather pill */
+.aqi-badge,.weather-pill{
+  display:inline-flex; align-items:center; gap:.25rem;
+  padding:.25rem .5rem; border-radius:999px; font-weight:600; font-size:.9rem;
+}
+.aqi-unknown{ background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.25); }
+.aqi-good{ background:#2ecc71; color:#fff; }
+.aqi-moderate{ background:#f1c40f; color:#243b02; }
+.aqi-unhealthy{ background:#e67e22; color:#fff; }
+.aqi-very-unhealthy{ background:#8e44ad; color:#fff; }
+.aqi-hazardous{ background:#e74c3c; color:#fff; }
+
+.weather-pill{ background:rgba(255,255,255,.18); color:#fff; border:1px solid rgba(255,255,255,.25); }

@@ -1,5 +1,104 @@
 extends ../../layouts/default.pug
+include ../../mixins/moment.pug
+include ../../mixins/aqi.pug
+
 block main
-  .container.py-4
-    h1.h3 #{title}
-    p.text-secondary Load dữ liệu.
+  // Hero
+  .container.py-5
+    .row.align-items-center.gy-4
+      .col-lg-7
+        h1.fw-bold.mb-2 Theo dõi chất lượng không khí TP. Hồ Chí Minh
+        p.lead.text-secondary Theo thời gian thực, chuẩn hoá và lưu trữ từ AirVisual API.
+        a.btn.btn-success.mt-2(href='#air')
+          i.bi.bi-cloud-sun.me-2
+          | Xem chỉ số AQI hiện tại
+      .col-lg-5
+        .card.shadow-sm.border-0
+          .card-body
+            if reading
+              .d-flex.flex-wrap.align-items-center.gap-3
+                +aqiBadge(reading.aqius)
+                .text-muted
+                  small
+                    i.bi.bi-clock-history.me-1
+                    | Cập nhật:
+                    |  
+                    +formatDateTime(reading.ts)
+            else
+              .text-muted
+                i.bi.bi-info-circle.me-1
+                | Chưa có dữ liệu. Vui lòng thử lại sau.
+
+  // Air section
+  .container.py-4#air
+    h2.h4.mb-3 Chất lượng không khí hiện tại
+    if reading
+      .row.g-3
+        .col-md-4
+          .card.border-0.shadow-sm
+            .card-body
+              h3.h5.mb-2 Chỉ số AQI
+              +aqiBadge(reading.aqius)
+              p.small.text-secondary.mt-2 Giá trị AQI được tính theo chuẩn US.
+        .col-md-8
+          .card.border-0.shadow-sm
+            .card-body
+              h3.h5.mb-3 Khuyến nghị nhanh
+              if reading.aqius <= 50
+                p.mb-0.text-success
+                  i.bi.bi-emoji-smile.me-2
+                  | Không khí tốt. Có thể hoạt động bình thường ngoài trời.
+              else if reading.aqius <= 100
+                p.mb-0.text-warning
+                  i.bi.bi-emoji-neutral.me-2
+                  | Nhóm nhạy cảm nên hạn chế tiếp xúc lâu ngoài trời.
+              else if reading.aqius <= 150
+                p.mb-0.text-orange
+                  i.bi.bi-emoji-frown.me-2
+                  | Người nhạy cảm hạn chế vận động mạnh ngoài trời.
+              else
+                p.mb-0.text-danger
+                  i.bi.bi-exclamation-triangle.me-2
+                  | Mọi người nên hạn chế hoạt động ngoài trời.
+    else
+      .alert.alert-secondary.mb-0 Không có dữ liệu AQI hiển thị.
+
+  // Weather section
+  .container.py-4#weather
+    h2.h4.mb-3 Thời tiết hiện tại
+    if reading
+      .row.g-3
+        .col-md-4
+          .card.border-0.shadow-sm
+            .card-body
+              .d-flex.align-items-center
+                i.bi.bi-thermometer-half.fs-3.text-danger.me-3
+                .flex-1
+                  .small.text-muted Nhiệt độ
+                  .h5.mb-0 #{reading.tp}°C
+        .col-md-4
+          .card.border-0.shadow-sm
+            .card-body
+              .d-flex.align-items-center
+                i.bi.bi-droplet-half.fs-3.text-primary.me-3
+                .flex-1
+                  .small.text-muted Độ ẩm
+                  .h5.mb-0 #{reading.hu}%
+        .col-md-4
+          .card.border-0.shadow-sm
+            .card-body
+              .d-flex.align-items-center
+                i.bi.bi-wind.fs-3.text-info.me-3
+                .flex-1
+                  .small.text-muted Tốc độ gió
+                  .h5.mb-0 #{reading.ws} m/s
+    else
+      .alert.alert-secondary.mb-0 Không có dữ liệu thời tiết hiển thị.
+
+  // Forecast placeholder
+  .container.py-4#forecast
+    h2.h4.mb-3 Dự báo (đang cập nhật)
+    .card.border-0.shadow-sm
+      .card-body.text-secondary
+        i.bi.bi-calendar-week.me-2
+        | Tính năng dự báo sẽ sớm được bổ sung.
