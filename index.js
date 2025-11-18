@@ -14,6 +14,7 @@ database.connect();
 // Route
 const clientRoutes = require('./routers/client/index.route');
 const adminRoutes = require('./routers/admin/index.route');
+const apiRoutes = require('./routers/api/index.route'); // Thêm dòng này
 const system = require('./config/system');
 
 
@@ -50,6 +51,7 @@ app.use('/tinymce', express.static(path.join(__dirname, 'node_modules', 'tinymce
 
 clientRoutes(app);
 adminRoutes(app);
+apiRoutes(app); // Thêm dòng này
 
 app.use((req, res) => {
     res.status(404).render('client/pages/errors/404', {
