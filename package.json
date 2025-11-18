@@ -11,6 +11,7 @@
     "dev": "concurrently -k -n web,worker -c yellow,magenta \"nodemon index.js\" \"nodemon scripts/fetch-and-save.js\"",
     "dev:web": "nodemon index.js",
     "dev:worker": "nodemon scripts/fetch-and-save.js",
+    "check:latest": "node scripts/print-latest.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
