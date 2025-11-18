@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: eco-track
+    env: node
+    buildCommand: npm install && pip install -r requirements.txt
+    startCommand: npm run start:web
+    envVars:
+      - key: NODE_VERSION
+        value: 22.14.0
+      - key: PYTHON_VERSION
+        value: 3.11

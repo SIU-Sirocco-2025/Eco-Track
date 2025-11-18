@@ -14,6 +14,7 @@
     "check:latest": "node scripts/print-latest.js",
     "check:python": "python -c \"import torch, pandas, numpy, sklearn; print('All dependencies OK')\"",
     "install:python": "pip install -r requirements.txt",
+    "build": "bash render-build.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
