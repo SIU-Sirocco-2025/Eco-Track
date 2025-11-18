@@ -1,6 +1,7 @@
 const models = require('../../models');
 const path = require('path');
 const { runPythonScriptWithStdin } = require('../../helpers/pythonRunner');
+const { ensurePythonDependencies } = require('../../helpers/checkPythonDeps');
 
 // Map tên quận sang model
 const DISTRICT_MODEL_MAP = {
@@ -131,6 +132,27 @@ module.exports.forecast24h = async (req, res) => {
 
     // Đánh dấu đang chạy
     runningPredictions.set(district, true);
+
+    // *** THÊM: Kiểm tra và cài đặt Python dependencies ***
+    try {
+      const depsCheck = await ensurePythonDependencies();
+      if (!depsCheck.success) {
+        runningPredictions.delete(district);
+        return res.status(500).json({
+          success: false,
+          message: 'Lỗi khi cài đặt Python dependencies',
+          error: depsCheck.error,
+          hint: 'Vui lòng cài thủ công: pip install -r requirements.txt'
+        });
+      }
+    } catch (depError) {
+      runningPredictions.delete(district);
+      return res.status(500).json({
+        success: false,
+        message: 'Không thể kiểm tra Python dependencies',
+        error: depError.message
+      });
+    }
 
     // Kiểm tra model file
     const modelFileName = DISTRICT_MODEL_FILE_MAP[district];

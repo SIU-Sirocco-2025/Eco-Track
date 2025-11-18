@@ -12,6 +12,8 @@
     "dev:web": "nodemon index.js",
     "dev:worker": "nodemon scripts/fetch-and-save.js",
     "check:latest": "node scripts/print-latest.js",
+    "check:python": "python -c \"import torch, pandas, numpy, sklearn; print('All dependencies OK')\"",
+    "install:python": "pip install -r requirements.txt",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
