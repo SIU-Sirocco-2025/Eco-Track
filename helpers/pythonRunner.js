@@ -1,5 +1,29 @@
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
+
+/**
+ * Lấy đường dẫn Python command (ưu tiên venv)
+ */
+function getPythonCommand() {
+  // Kiểm tra venv trước
+  const venvPaths = [
+    path.join(process.cwd(), 'venv', 'bin', 'python'),     // Linux/Mac
+    path.join(process.cwd(), 'venv', 'Scripts', 'python.exe') // Windows
+  ];
+  
+  for (const venvPath of venvPaths) {
+    if (fs.existsSync(venvPath)) {
+      console.log(`[Python] Using virtual environment: ${venvPath}`);
+      return venvPath;
+    }
+  }
+  
+  // Fallback: dùng system Python
+  const systemCmd = process.platform === 'win32' ? 'python' : 'python3';
+  console.log(`[Python] Using system Python: ${systemCmd}`);
+  return systemCmd;
+}
 
 /**
  * Chạy Python script và trả về kết quả
@@ -9,8 +33,7 @@ const path = require('path');
  */
 module.exports.runPythonScript = (scriptPath, args = []) => {
   return new Promise((resolve, reject) => {
-    // Sử dụng python3 hoặc python tùy hệ thống
-    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+    const pythonCmd = getPythonCommand();
     
     const pythonProcess = spawn(pythonCmd, [scriptPath, ...args]);
     
@@ -54,7 +77,7 @@ module.exports.runPythonScript = (scriptPath, args = []) => {
  */
 module.exports.runPythonScriptWithStdin = (scriptPath, args = [], csvData = '') => {
   return new Promise((resolve, reject) => {
-    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+    const pythonCmd = getPythonCommand();
     
     const pythonProcess = spawn(pythonCmd, [scriptPath, ...args], {
       env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
