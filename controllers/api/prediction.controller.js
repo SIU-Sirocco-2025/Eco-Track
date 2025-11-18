@@ -166,7 +166,10 @@ module.exports.forecast24h = async (req, res) => {
 
     const modelPath = path.join(__dirname, '../../model_params', modelFileName);
 
+    console.log(`\n============================================`);
     console.log(`[FORECAST] Bắt đầu dự đoán cho ${district}`);
+    console.log(`[FORECAST] Model file: ${modelFileName}`);
+    console.log(`[FORECAST] Đang lấy 72 giờ dữ liệu từ database...`);
 
     // Lấy 72h dữ liệu từ DB
     const Model = DISTRICT_MODEL_MAP[district];
@@ -179,6 +182,8 @@ module.exports.forecast24h = async (req, res) => {
 
     if (records.length < 72) {
       runningPredictions.delete(district);
+      console.log(`[FORECAST] ✗ Không đủ dữ liệu: ${records.length}/72 bản ghi`);
+      console.log(`============================================\n`);
       return res.status(404).json({
         success: false,
         message: `Không đủ dữ liệu. Chỉ có ${records.length}/72 bản ghi`
@@ -186,6 +191,7 @@ module.exports.forecast24h = async (req, res) => {
     }
 
     records.reverse();
+    console.log(`[FORECAST] ✓ Đã lấy ${records.length} bản ghi`);
 
     // Tạo CSV string
     const districtLabel = getDistrictLabel(district);
@@ -197,22 +203,29 @@ module.exports.forecast24h = async (req, res) => {
     }).join('\n');
     
     const csvData = csvHeader + csvRows;
+    console.log(`[FORECAST] ✓ Đã tạo CSV data (${csvData.length} bytes)`);
 
     // Gọi Python script với stdin
     const pythonScript = path.join(__dirname, '../../predict_from_json.py');
     const pythonArgs = ['--model', modelPath, '--stdin'];
 
-    console.log(`[FORECAST] Đang chạy Python với stdin...`);
+    console.log(`[FORECAST] Đang chạy Python LSTM model...`);
+    const startTime = Date.now();
     const predictions = await runPythonScriptWithStdin(pythonScript, pythonArgs, csvData);
+    const elapsed = Date.now() - startTime;
 
     // Xóa lock
     runningPredictions.delete(district);
 
     if (!predictions.success) {
+      console.log(`[FORECAST] ✗ Python trả về lỗi: ${predictions.error}`);
+      console.log(`============================================\n`);
       throw new Error(predictions.error || 'Prediction failed');
     }
 
-    console.log(`[FORECAST] Dự đoán thành công cho ${district}`);
+    console.log(`[FORECAST] ✓ Dự đoán thành công (${elapsed}ms)`);
+    console.log(`[FORECAST] Stats: min=${predictions.statistics.min}, max=${predictions.statistics.max}, mean=${predictions.statistics.mean}`);
+    console.log(`============================================\n`);
 
     // Trả về kết quả
     return res.status(200).json({
@@ -225,7 +238,8 @@ module.exports.forecast24h = async (req, res) => {
     // Xóa lock khi lỗi
     runningPredictions.delete(req.params.district);
     
-    console.error('[API Error] forecast24h:', error);
+    console.error(`\n[API Error] forecast24h for ${req.params.district}:`, error.message);
+    console.log(`============================================\n`);
     return res.status(500).json({
       success: false,
       message: 'Lỗi khi dự đoán',

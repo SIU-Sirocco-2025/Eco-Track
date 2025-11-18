@@ -56,23 +56,28 @@ module.exports.runPythonScriptWithStdin = (scriptPath, args = [], csvData = '') 
   return new Promise((resolve, reject) => {
     const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
     
-    const pythonProcess = spawn(pythonCmd, [scriptPath, ...args]);
+    const pythonProcess = spawn(pythonCmd, [scriptPath, ...args], {
+      env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
+    });
     
     let stdout = '';
     let stderr = '';
     
-    // Gửi CSV qua stdin
+    // Gửi CSV qua stdin với UTF-8 encoding
     if (csvData) {
-      pythonProcess.stdin.write(csvData);
+      pythonProcess.stdin.write(csvData, 'utf8');
       pythonProcess.stdin.end();
     }
     
+    pythonProcess.stdout.setEncoding('utf8');
+    pythonProcess.stderr.setEncoding('utf8');
+    
     pythonProcess.stdout.on('data', (data) => {
-      stdout += data.toString();
+      stdout += data;
     });
     
     pythonProcess.stderr.on('data', (data) => {
-      stderr += data.toString();
+      stderr += data;
     });
     
     pythonProcess.on('close', (code) => {
