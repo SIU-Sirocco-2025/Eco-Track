@@ -7,13 +7,13 @@
     "start:all": "concurrently -k -n web,airvisual,openaq -c green,cyan,magenta \"npm run start:web\" \"npm run start:airvisual\" \"npm run start:openaq\"",
     "start:web": "node index.js",
     "start:airvisual": "node scripts/fetch-and-save.js",
-    "start:openaq": "node scripts/fetch-openaq-station.js",
+    "start:openaq": "node scripts/fetch-openaq-hours.js",
     
     "dev": "npm run dev:all",
     "dev:all": "concurrently -k -n web,airvisual,openaq -c yellow,cyan,magenta \"npm run dev:web\" \"npm run dev:airvisual\" \"npm run dev:openaq\"",
     "dev:web": "nodemon index.js",
     "dev:airvisual": "nodemon scripts/fetch-and-save.js",
-    "dev:openaq": "nodemon scripts/fetch-openaq-station.js",
+    "dev:openaq": "nodemon scripts/fetch-openaq-hours.js",
     
     "worker": "npm run worker:all",
     "worker:all": "concurrently -k -n airvisual,openaq -c cyan,magenta \"npm run start:airvisual\" \"npm run start:openaq\"",
