@@ -4,18 +4,29 @@
   "main": "index.js",
   "scripts": {
     "start": "npm run start:all",
-    "start:all": "concurrently -k -n web,worker -c green,cyan \"npm run start:web\" \"npm run start:worker\"",
+    "start:all": "concurrently -k -n web,airvisual,openaq -c green,cyan,magenta \"npm run start:web\" \"npm run start:airvisual\" \"npm run start:openaq\"",
     "start:web": "node index.js",
-    "start:worker": "node scripts/fetch-and-save.js",
-    "cron:fetch": "node scripts/fetch-and-save.js",
-    "dev": "concurrently -k -n web,worker -c yellow,magenta \"nodemon index.js\" \"nodemon scripts/fetch-and-save.js\"",
+    "start:airvisual": "node scripts/fetch-and-save.js",
+    "start:openaq": "node scripts/fetch-openaq-hours.js",
+    
+    "dev": "npm run dev:all",
+    "dev:all": "concurrently -k -n web,airvisual,openaq -c yellow,cyan,magenta \"npm run dev:web\" \"npm run dev:airvisual\" \"npm run dev:openaq\"",
     "dev:web": "nodemon index.js",
+<<<<<<< HEAD
     "dev:worker": "nodemon scripts/fetch-and-save.js",
     "check:latest": "node scripts/print-latest.js",
     "check:python": "python -c \"import torch, pandas, numpy, sklearn; print('All dependencies OK')\"",
     "install:python": "pip install -r requirements.txt",
     "build": "bash render-build.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
+=======
+    "dev:airvisual": "nodemon scripts/fetch-and-save.js",
+    "dev:openaq": "nodemon scripts/fetch-openaq-hours.js",
+    
+    "worker": "npm run worker:all",
+    "worker:all": "concurrently -k -n airvisual,openaq -c cyan,magenta \"npm run start:airvisual\" \"npm run start:openaq\"",
+    "worker:dev": "concurrently -k -n airvisual,openaq -c cyan,magenta \"npm run dev:airvisual\" \"npm run dev:openaq\""
+>>>>>>> feature/dev-api
   },
   "keywords": [],
   "author": "",
@@ -53,6 +64,6 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.11"
   }
 }

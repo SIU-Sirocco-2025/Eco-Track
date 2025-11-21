@@ -15,5 +15,7 @@ module.exports = {
   ThuDucReading: require('./thuDuc.model'),
   HCMCReading: require('./hcmc.model'),
   District11Reading: require('./district11.model'),
-  BinhTanReading: require('./binhTan.model')
+  BinhTanReading: require('./binhTan.model'),
+  HCMCAirIndex: require('./hcmcAirindex.model'),
+  HCMCAirHour: require('./hcmcAirHour.model'),
 };
