@@ -87,6 +87,30 @@ body{ background-color: var(--brand-50); }
   display:inline-flex; align-items:center; gap:.25rem;
   padding:.25rem .5rem; border-radius:999px; font-weight:600; font-size:.9rem;
 }
+.status-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:.5rem;
+  padding:.4rem .9rem;
+  font-size:.9rem;
+  font-weight:600;
+  line-height:1;
+  border-radius:999px;
+}
+
+.status-badge i{
+  font-size:1.15rem;
+  line-height:1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:1.15rem;
+  height:1.15rem;
+}
+
+.aqi-badge{ background:#f1c40f; color:#222; }
+.temp-badge{ background:#ffffff; color:#169444; border:1px solid #169444; }
+
 .aqi-unknown{ background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.25); }
 .aqi-good{ background:#2ecc71; color:#fff; }
 .aqi-moderate{ background:#f1c40f; color:#243b02; }
@@ -251,3 +275,38 @@ body.aqi-safe .aqi-map-ring{ box-shadow: 0 0 0 4px rgba(46,204,113,.15); }
   transform: translateY(-4px);
   box-shadow: 0 4px 8px rgba(0,0,0,.15) !important;
 }
+
+
+/* // openaq */
+.city-hour-card{
+  border-radius:16px;
+  background:linear-gradient(135deg,#ffffff,#f5fdf8);
+  overflow:hidden;
+}
+.city-hour-card .card-header{
+  background:linear-gradient(90deg,#e8f7ee,#ffffff);
+  border-bottom:1px solid #e9ecef;
+}
+.city-hour-metrics .metric-item{
+  background:#f8f9fa;
+  border:1px solid #eef2f3;
+  border-radius:10px;
+  padding:.6rem .7rem;
+  transition:.15s;
+}
+.city-hour-metrics .metric-item:hover{
+  background:#ffffff;
+  box-shadow:0 2px 6px rgba(0,0,0,.05);
+}
+.city-hour-metrics .metric-item.danger{
+  border-color:#ffdddd;
+  background:#fff5f5;
+}
+.city-hour-metrics .metric-item.danger .metric-value{
+  color:#d63031;
+}
+.city-hour-table table tbody tr.table-warning{
+  --bs-table-bg:#fff8e1;
+}
+.city-hour-table table td,
+.city-hour-table table th{ white-space:nowrap; }

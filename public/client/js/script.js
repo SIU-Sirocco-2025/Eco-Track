@@ -1,7 +1,44 @@
 // Enhanced client-side AQI map + UI behaviours
 (function initAQIMap() {
+  function aqiClass(aqius) {
+    if (aqius <= 50) return { key: 'good', color: '#2ecc71', label: 'Tot' };
+    if (aqius <= 100) return { key: 'moderate', color: '#f1c40f', label: 'Trung binh' };
+    if (aqius <= 150) return { key: 'unhealthy', color: '#e67e22', label: 'Nhay cam' };
+    if (aqius <= 200) return { key: 'unhealthy', color: '#e67e22', label: 'Xau' };
+    if (aqius <= 300) return { key: 'very-unhealthy', color: '#8e44ad', label: 'Rat xau' };
+    return { key: 'hazardous', color: '#e74c3c', label: 'Nguy hai' };
+  }
+  function formatTime(value) {
+    if (!value) return '--';
+    const time = typeof value === 'number' ? new Date(value) : new Date(String(value));
+    if (Number.isNaN(time.getTime())) return '--';
+    return time.toLocaleString('vi-VN', { hour12: false });
+  }
+  function updateHeaderBadges(aqi, temp, ts) {
+    const root = document.querySelector('.aqi-badge');
+    const valueEl = document.querySelector('[data-aqi]');
+    if (!root || !valueEl) return;
+    const info = aqiClass(Number(aqi || 0));
+    valueEl.textContent = aqi ?? '--';
+    root.classList.remove(
+      'aqi-good','aqi-moderate','aqi-unhealthy','aqi-very-unhealthy','aqi-hazardous','aqi-unknown'
+    );
+    root.classList.add(`aqi-${info.key}`);
+    root.title = `Cap nhat: ${formatTime(ts)} • ${info.label}`;
+  }
+
+  // Cập nhật header luôn, dù có hay không có map
+  fetch('/aqi/latest-reading')
+    .then(r => r.json())
+    .then(d => { if (d?.success) updateHeaderBadges(d.aqius, d.tp, d.ts); })
+    .catch(()=>{});
+
+  // Kiểm tra map
   const mapEl = document.getElementById('aqi-map');
-  if (!mapEl || typeof L === 'undefined') return;
+  if (!mapEl || typeof L === 'undefined') {
+    // Không có map -> dừng sau khi đã cập nhật header
+    return;
+  }
 
   const HCMC_BOUNDS = L.latLngBounds([10.40, 106.40], [10.97, 107.10]);
   const baseLayers = {
@@ -73,21 +110,45 @@
     return { cityStation, districts };
   }
 
-  function aqiClass(aqius) {
-    if (aqius <= 50) return { key: 'good', color: '#2ecc71', label: 'Tot' };
-    if (aqius <= 100) return { key: 'moderate', color: '#f1c40f', label: 'Trung binh' };
-    if (aqius <= 150) return { key: 'unhealthy', color: '#e67e22', label: 'Nhay cam' };
-    if (aqius <= 200) return { key: 'unhealthy', color: '#e67e22', label: 'Xau' };
-    if (aqius <= 300) return { key: 'very-unhealthy', color: '#8e44ad', label: 'Rat xau' };
-    return { key: 'hazardous', color: '#e74c3c', label: 'Nguy hai' };
-  }
+  // function aqiClass(aqius) {
+  //   if (aqius <= 50) return { key: 'good', color: '#2ecc71', label: 'Tot' };
+  //   if (aqius <= 100) return { key: 'moderate', color: '#f1c40f', label: 'Trung binh' };
+  //   if (aqius <= 150) return { key: 'unhealthy', color: '#e67e22', label: 'Nhay cam' };
+  //   if (aqius <= 200) return { key: 'unhealthy', color: '#e67e22', label: 'Xau' };
+  //   if (aqius <= 300) return { key: 'very-unhealthy', color: '#8e44ad', label: 'Rat xau' };
+  //   return { key: 'hazardous', color: '#e74c3c', label: 'Nguy hai' };
+  // }
 
-  function formatTime(value) {
-    if (!value) return '--';
-    const time = typeof value === 'number' ? new Date(value) : new Date(String(value));
-    if (Number.isNaN(time.getTime())) return '--';
-    return time.toLocaleString('vi-VN', { hour12: false });
-  }
+  // function formatTime(value) {
+  //   if (!value) return '--';
+  //   const time = typeof value === 'number' ? new Date(value) : new Date(String(value));
+  //   if (Number.isNaN(time.getTime())) return '--';
+  //   return time.toLocaleString('vi-VN', { hour12: false });
+  // }
+  // function updateHeaderBadges(aqi, temp, ts) {
+  //   const aqiEl = document.querySelector('.aqi-badge');
+  //   const tempEl = document.querySelector('[data-temp]');
+  //   if (!aqiEl || !tempEl) return;
+  //   const info = aqiClass(Number(aqi || 0));
+  //   aqiEl.dataset.aqi = aqi ?? '--';
+  //   aqiEl.innerHTML = `<i class="bi bi-wind me-1"></i>AQI ${aqi ?? '--'}`;
+  //   aqiEl.className = `aqi-badge btn btn-outline-light rounded-pill aqi-${info.key}`;
+  //   tempEl.innerHTML = `<i class="bi bi-thermometer me-1"></i>${typeof temp === 'number' ? temp + '°' : '--°'}`;
+  //   aqiEl.title = `Cap nhat: ${formatTime(ts)} • ${info.label}`;
+  // }
+
+  // // Luôn gọi để cập nhật header, kể cả khi không có map
+  // fetch('/aqi/latest-reading')
+  //   .then(r => r.json())
+  //   .then(d => { if (d?.success) updateHeaderBadges(d.aqius, d.tp, d.ts); })
+  //   .catch(() => { });
+
+  // const mapEl = document.getElementById('aqi-map');
+  // const hasMap = mapEl && typeof L !== 'undefined';
+  // if (!hasMap) {
+  //   // Không có map -> chỉ cần header, dừng tại đây
+  //   return;
+  // }
 
   function renderCityHero(station) {
     if (!cityHeroEl) return;
@@ -107,19 +168,144 @@
       <div class="aqi-city-hero-card card aqi-card-${info.key}" data-station-id="${key}">
         <div class="card-body d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
           <div class="flex-grow-1">
-            <p class="text-uppercase small fw-semibold text-muted mb-1">Tram tong</p>
+            <p class="text-uppercase small fw-semibold text-muted mb-1">
+              <i class="bi bi-broadcast-pin me-1"></i>Tram tong
+            </p>
             <h3 class="h4 mb-1">${label}</h3>
-            <p class="mb-3 text-muted">Phu song toan thanh pho</p>
-            <span class="aqi-city-chip" style="color:${info.color}">${info.label}</span>
+            <p class="mb-2 text-muted d-flex align-items-center gap-2">
+              <i class="bi bi-geo me-1"></i>Phu song toan thanh pho
+            </p>
+            <span class="aqi-city-chip me-2 badge rounded-pill px-3 py-2" style="background:${info.color}1f;color:${info.color};border:1px solid ${info.color}33">${info.label}</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" data-city-hour-btn>
+              <i class="bi bi-clock-history"></i>
+              <span>Thong so gio gan nhat</span>
+            </button>
           </div>
           <div class="text-center">
             <div class="display-4 fw-bold mb-0">${aqius}</div>
             <div class="text-muted">AQI</div>
-            <div class="mt-2 small text-muted">Cap nhat: ${tsText}</div>
+            <div class="mt-2 small text-muted d-flex align-items-center justify-content-center gap-1">
+              <i class="bi bi-arrow-repeat"></i><span>Cap nhat: ${tsText}</span>
+            </div>
           </div>
         </div>
       </div>`;
     cityHeroEl.querySelector('[data-station-id]').addEventListener('click', () => focusStation(key));
+    const btn = cityHeroEl.querySelector('[data-city-hour-btn]');
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      toggleCityHourDetails();
+    });
+  }
+  function renderCityHourDetails(data) {
+    const wrap = document.getElementById('city-hour-details');
+    if (!wrap) return;
+    if (!data?.success) {
+      wrap.innerHTML = '<div class="city-hour-card small text-muted">Khong co du lieu gio gan nhat.</div>';
+      wrap.classList.remove('d-none');
+      return;
+    }
+    const win = data.window || {};
+    const fromText = formatTime(win.fromLocal || win.from);
+    const toText = formatTime(win.toLocal || win.to);
+
+    // Mapping chuẩn
+    const SENSOR_META = {
+      pm1: { display: 'PM1.0', unit: 'µg/m³', icon: 'bi-bullseye', critical: true },
+      pm25: { display: 'PM2.5', unit: 'µg/m³', icon: 'bi-cloud-haze2', critical: true },
+      relativehumidity: { display: 'Độ ẩm', unit: '%', icon: 'bi-droplet-half' },
+      temperature: { display: 'Nhiệt độ', unit: '°C', icon: 'bi-thermometer-half' },
+      um003: { display: 'PM0.3', unit: 'particles/cm³', icon: 'bi-stars' }
+    };
+    const sensorMeta = k => SENSOR_META[k] || { display: k, unit: '', icon: 'bi-info-circle' };
+    const orderWeight = k => ({ pm1: 1, pm25: 2, relativehumidity: 3, temperature: 4, um003: 5 }[k] || 99);
+
+    const rows = (data.measurements || [])
+      .sort((a, b) => orderWeight(a.key) - orderWeight(b.key))
+      .map(m => {
+        const meta = sensorMeta(m.key);
+        const warn = meta.critical;
+        return `
+        <tr class="${warn ? 'table-warning' : ''}">
+          <td class="text-muted">
+            <i class="bi ${meta.icon} me-1"></i>${meta.display}
+          </td>
+          <td>
+            <span class="fw-semibold">${m.value ?? '--'}</span>
+            ${warn ? '<span class="badge bg-danger-subtle text-danger ms-2">Canh bao</span>' : ''}
+          </td>
+          <td class="text-muted">${meta.unit}</td>
+        </tr>`;
+      }).join('');
+
+    wrap.innerHTML = `
+    <div class="city-hour-card card border-0 shadow-sm">
+      <div class="card-header bg-white border-0 pb-0 d-flex justify-content-between align-items-center">
+        <h5 class="h6 mb-0 d-flex align-items-center gap-2">
+          <i class="bi bi-clock-history text-primary"></i><span>Thong so gio gan nhat</span>
+        </h5>
+        <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" data-city-hour-close>
+          <i class="bi bi-x-lg"></i><span>Dong</span>
+        </button>
+      </div>
+      <div class="card-body pt-2">
+        <p class="small text-muted mb-3">
+          <i class="bi bi-calendar-range me-1"></i>
+          Khung gio: <strong>${fromText}</strong>
+          <span class="mx-1">→</span>
+          <strong>${toText}</strong>
+        </p>
+        <div class="row g-3 mb-3 city-hour-metrics">
+          ${(data.measurements || []).sort((a, b) => orderWeight(a.key) - orderWeight(b.key)).map(m => {
+      const meta = sensorMeta(m.key);
+      const cls = meta.critical ? 'metric-item danger' : 'metric-item';
+      return `
+              <div class="col-6 col-md-4 col-lg-3">
+                <div class="${cls}">
+                  <div class="metric-label text-muted small">
+                    <i class="bi ${meta.icon} me-1"></i>${meta.display}
+                  </div>
+                  <div class="metric-value fw-semibold">${m.value ?? '--'} <span class="small text-muted">${meta.unit}</span></div>
+                </div>
+              </div>`;
+    }).join('')}
+        </div>
+        <div class="table-responsive mb-0 city-hour-table">
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr><th>Sensor</th><th>Value</th><th>Unit</th></tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+    wrap.classList.remove('d-none');
+    wrap.querySelector('[data-city-hour-close]').addEventListener('click', () => wrap.classList.add('d-none'));
+  }
+
+  let cityHourLoaded = false;
+  function toggleCityHourDetails() {
+    const wrap = document.getElementById('city-hour-details');
+    if (!wrap) return;
+    if (!wrap.classList.contains('d-none')) {
+      wrap.classList.add('d-none');
+      return;
+    }
+    if (!cityHourLoaded) {
+      fetch('/aqi/hour-latest')
+        .then(r => r.json())
+        .then(data => {
+          cityHourLoaded = true;
+          renderCityHourDetails(data);
+        })
+        .catch(() => {
+          cityHourLoaded = true;
+          renderCityHourDetails(null);
+        });
+    } else {
+      wrap.classList.remove('d-none');
+    }
   }
 
   function applyCityOverlay(station) {
@@ -191,9 +377,9 @@
     }
     wrap.classList.add(
       cls.key === 'good' ? 'aqi-theme-good' :
-      cls.key === 'moderate' ? 'aqi-theme-moderate' :
-      cls.key === 'unhealthy' ? 'aqi-theme-unhealthy' :
-      cls.key === 'very-unhealthy' ? 'aqi-theme-very-unhealthy' : 'aqi-theme-hazardous'
+        cls.key === 'moderate' ? 'aqi-theme-moderate' :
+          cls.key === 'unhealthy' ? 'aqi-theme-unhealthy' :
+            cls.key === 'very-unhealthy' ? 'aqi-theme-very-unhealthy' : 'aqi-theme-hazardous'
     );
   }
 
@@ -232,7 +418,7 @@
       const aqius = Number(props.aqius || 0);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
       const info = aqiClass(aqius);
-      const classes = [`pm-dot`, info.key.replace(/\s/g,'-'), aqius >= 151 ? 'need-pulse' : ''].join(' ').trim();
+      const classes = [`pm-dot`, info.key.replace(/\s/g, '-'), aqius >= 151 ? 'need-pulse' : ''].join(' ').trim();
       const iconSize = [16, 16];
       const iconAnchor = [8, 8];
       const divIcon = L.divIcon({
@@ -412,5 +598,8 @@
       updateStationsTimestamp(fc.features);
       addLegendControl();
     })
-    .catch(() => {});
+    .catch(() => { });
 })();
+
+
+

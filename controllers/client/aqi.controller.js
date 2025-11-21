@@ -123,3 +123,52 @@ module.exports.latestPoints = async (req, res) => {
     res.status(500).json({ error: 'Failed to load AQI points' });
   }
 };
+
+// [GET] /aqi/hour-latest
+module.exports.latestCityHour = async (req, res) => {
+  try {
+    const doc = await models.HCMCAirHour.findOne()
+      .sort({ from: -1 })
+      .lean();
+    if (!doc) {
+      return res.json({ success: false, message: 'No hour data' });
+    }
+    // Chuẩn hoá measurements -> mảng để dễ render
+    const measurements = Object.values(doc.measurements || {}).map(m => ({
+      key: m.parameter,
+      value: m.value,
+      unit: m.unit,
+      fromLocal: m.from,
+      toLocal: m.to
+    }));
+    return res.json({
+      success: true,
+      from: doc.from,
+      to: doc.to,
+      window: doc.window,
+      total: measurements.length,
+      measurements
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// [GET] /aqi/latest-reading
+module.exports.latestCityReading = async (req, res) => {
+  try {
+    const doc = await models.HCMCReading
+      .findOne({ 'current.pollution.ts': { $exists: true } })
+      .sort({ 'current.pollution.ts': -1 })
+      .lean();
+    if (!doc) return res.json({ success: false });
+    return res.json({
+      success: true,
+      aqius: doc.current?.pollution?.aqius,
+      tp: doc.current?.weather?.tp,
+      ts: doc.current?.pollution?.ts
+    });
+  } catch {
+    return res.json({ success: false });
+  }
+};
