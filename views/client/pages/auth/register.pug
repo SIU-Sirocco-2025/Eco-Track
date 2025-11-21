@@ -1,0 +1,43 @@
+extends ../../layouts/default.pug
+include ../../mixins/box-head.pug
+include ../../mixins/alert.pug
+block main
+    +showAlertSuccess(5000)
+    +showAlertError(5000)
+    .container.my-3
+        .row
+            .col-lg-8.mx-auto
+                +box-head(title)
+
+                form(
+                    action="/user/register"
+                    method="POST"
+                )
+                    .mb-3
+                        label.form-label(for="fullName") Họ và tên
+                        input.form-control(
+                            type="text"
+                            id="fullName"
+                            name="fullName"
+                            required
+                        )
+                    .mb-3
+                        label.form-label(for="email") Email
+                        input.form-control(
+                            type="email"
+                            id="email"
+                            name="email"
+                            required
+                        )
+                    .mb-3
+                        label.form-label(for="password") Mật khẩu
+                        input.form-control(
+                            type="password"
+                            id="password"
+                            name="password"
+                            required
+                        )
+                    .d-grid
+                        button.btn.btn-primary(
+                            type="submit"
+                        ) Đăng ký
