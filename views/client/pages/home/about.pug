@@ -1,4 +1,130 @@
 extends ../../layouts/default.pug
+include ../../mixins/about.pug
+
 block main
-  .container.py-4
-    h1.h3 #{title}
+  // Hero Section
+  +heroSection(
+    'Về Eco-Track',
+    'Hệ thống theo dõi và lưu trữ chất lượng không khí theo thời gian thực cho TP. Hồ Chí Minh',
+    '/client/image/logo.png'
+  )
+
+  // Mission Section
+  .container.py-5
+    .row.mb-5
+      .col-12
+        h2.h3.mb-4.text-center
+          i.bi.bi-bullseye.me-2.text-success
+          | Sứ mệnh của chúng tôi
+        .row.g-4
+          +missionCard(
+            'cloud-sun',
+            'Thu thập dữ liệu',
+            'Cập nhật liên tục chỉ số AQI từ các trạm quan trắc trên toàn TP. Hồ Chí Minh thông qua AirVisual API'
+          )
+          +missionCard(
+            'database',
+            'Lưu trữ & Phân tích',
+            'Chuẩn hóa và lưu trữ dữ liệu vào MongoDB, phục vụ phân tích xu hướng và nghiên cứu môi trường'
+          )
+          +missionCard(
+            'graph-up-arrow',
+            'Dự báo & Cảnh báo',
+            'Sử dụng mô hình LSTM để dự đoán chất lượng không khí 24 giờ tới, giúp người dân chủ động phòng tránh'
+          )
+
+  // Features Section
+  .bg-light.py-5
+    .container
+      h2.h3.mb-4.text-center
+        i.bi.bi-star.me-2.text-success
+        | Tính năng nổi bật
+      .row.g-4
+        +featureItem(
+          'clock-history',
+          'Cập nhật Real-time',
+          'Dữ liệu được thu thập và cập nhật liên tục mỗi 10 phút'
+        )
+        +featureItem(
+          'map',
+          'Bản đồ nhiệt',
+          'Hiển thị trực quan mức độ ô nhiễm trên toàn thành phố'
+        )
+        +featureItem(
+          'bar-chart-line',
+          'Biểu đồ lịch sử',
+          'Theo dõi xu hướng thay đổi AQI theo thời gian'
+        )
+        +featureItem(
+          'robot',
+          'AI Dự báo',
+          'Dự đoán AQI 24h tới bằng mô hình học máy LSTM'
+        )
+
+  // Technology Stack
+  .container.py-5
+    h2.h3.mb-4.text-center
+      i.bi.bi-cpu.me-2.text-success
+      | Công nghệ sử dụng
+    .row.g-3
+      +techCard(
+        'code-slash',
+        'Backend',
+        ['Node.js & Express.js', 'MongoDB & Mongoose', 'Python (LSTM prediction)', 'Node-cron (Scheduler)']
+      )
+      +techCard(
+        'palette',
+        'Frontend',
+        ['Pug Template Engine', 'Bootstrap 5', 'Leaflet.js (Maps)', 'Chart.js (Visualization)']
+      )
+      +techCard(
+        'cloud',
+        'Data & AI',
+        ['AirVisual API', 'PyTorch (LSTM Model)', 'Pandas & NumPy', 'Scikit-learn']
+      )
+
+  // Team Section
+  .bg-success.bg-opacity-10.py-5
+    .container
+      h2.h3.mb-4.text-center
+        i.bi.bi-people.me-2.text-success
+        | Đội ngũ phát triển
+      +teamCard(
+        'SIU_Sirocco',
+        'Đội thi Olympic Tin học Sinh viên 2025',
+        'Đại học quốc tế Sài Gòn (SIU)',
+        'https://github.com/SIU-Sirocco-2025/Eco-Track'
+      )
+
+  // Contact & License
+  .container.py-5
+    .row.g-4
+      +contactCard(
+        'envelope',
+        'Liên hệ & Đóng góp',
+        'Eco-Track là dự án mã nguồn mở. Chúng tôi hoan nghênh mọi đóng góp!',
+        [
+          'Fork repository trên GitHub',
+          'Tạo Pull Request với tính năng mới',
+          'Báo cáo lỗi qua Issues',
+          'Đề xuất cải tiến và tính năng'
+        ]
+      )
+      +licenseCard(
+        'Giấy phép & Bản quyền',
+        'GNU GPL v3.0',
+        'Bạn có thể tự do sử dụng, chỉnh sửa và phân phối mã nguồn này theo điều khoản của GPL v3.0',
+        'https://www.gnu.org/licenses/gpl-3.0.html'
+      )
+
+  // Call to Action
+  -
+    const ctaButtons = [
+      { class: 'btn btn-light btn-lg', url: '/', icon: 'bi bi-house-door me-2', text: 'Về trang chủ' },
+      { class: 'btn btn-outline-light btn-lg', url: '/aqi', icon: 'bi bi-map me-2', text: 'Xem bản đồ AQI' }
+    ]
+  +ctaSection(
+    'Bắt đầu theo dõi chất lượng không khí ngay hôm nay',
+    'Cùng nhau xây dựng môi trường sống trong lành hơn cho TP. Hồ Chí Minh',
+    ctaButtons
+  )
