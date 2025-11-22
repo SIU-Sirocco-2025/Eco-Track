@@ -11,44 +11,49 @@ module.exports.login = (req, res) => {
 module.exports.register = (req, res) => {
   res.render('client/pages/auth/register.pug', { title: 'Đăng ký' });
 }
-// [POST] /register
+
+// [POST] /auth/register - Xác thực OTP và tạo tài khoản
 module.exports.registerPost = async (req, res) => {
   try {
-    const { fullName, email, password, confirmPassword } = req.body;
+    const { fullName, email, password, confirmPassword, otp } = req.body;
 
     // Validate input
-    if (!fullName || !email || !password || !confirmPassword) {
+    if (!fullName || !email || !password || !confirmPassword || !otp) {
       req.flash('error', 'Vui lòng điền đầy đủ thông tin!');
-      res.redirect(req.get('Referrer') || '/');
+      return res.redirect('/auth/register');
     }
 
     if (password !== confirmPassword) {
       req.flash('error', 'Mật khẩu xác nhận không khớp!');
-      return res.redirect(req.get('Referrer') || '/');
+      return res.redirect('/auth/register');
     }
 
     if (password.length < 6) {
       req.flash('error', 'Mật khẩu phải có ít nhất 6 ký tự!');
-      return res.redirect(req.get('Referrer') || '/');
+      return res.redirect('/auth/register');
     }
 
-    if (req.body.acceptTerms !== 'on') {
-      req.flash('error', 'Bạn phải đồng ý với các điều khoản dịch vụ!');
-      return res.redirect(req.get('Referrer') || '/');
+    // Xác thực OTP
+    const otpDoc = await Otp.findOne({ email, otp }).lean();
+    if (!otpDoc) {
+      req.flash('error', 'Mã OTP không hợp lệ!');
+      return res.redirect('/auth/register');
     }
 
-    // Check if email already exists
-    const existingUser = await User.findOne({
-      email: email,
-      deleted: false
-    });
+    if (otpDoc.expiresAt < new Date()) {
+      await Otp.deleteOne({ _id: otpDoc._id }).catch(() => {});
+      req.flash('error', 'Mã OTP đã hết hạn!');
+      return res.redirect('/auth/register');
+    }
 
+    // Kiểm tra email đã tồn tại (double-check)
+    const existingUser = await User.findOne({ email, deleted: false });
     if (existingUser) {
       req.flash('error', 'Email đã được sử dụng!');
-      return res.redirect(req.get('Referrer') || '/');
+      return res.redirect('/auth/register');
     }
 
-    // Create new user
+    // Tạo user mới
     const newUser = new User({
       fullName: fullName,
       email: email,
@@ -57,15 +62,19 @@ module.exports.registerPost = async (req, res) => {
 
     await newUser.save();
 
-    req.flash('success', 'Đăng ký tài khoản thành công!');
-    res.redirect('/auth/login');
+    // Xóa OTP đã sử dụng
+    await Otp.deleteOne({ _id: otpDoc._id }).catch(() => {});
+
+    req.flash('success', 'Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
+    return res.redirect('/auth/login');
 
   } catch (error) {
     console.error('Register error:', error);
     req.flash('error', 'Có lỗi xảy ra, vui lòng thử lại!');
-    res.redirect(req.get('Referrer') || '/');
+    return res.redirect('/auth/register');
   }
-}
+};
+
 
 // [POST] /login
 module.exports.loginPost = async (req, res) => {
@@ -415,4 +424,104 @@ module.exports.otp = (req, res) => {
     title: 'Quên mật khẩu',
     prefillEmail: email
   });
+};
+
+// [POST] /auth/register/send-otp - Gửi OTP
+module.exports.sendRegisterOTP = async (req, res) => {
+  const isJson = req.is('application/json');
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      if (isJson) return res.status(400).json({ success: false, message: 'Thiếu email' });
+      req.flash('error', 'Vui lòng nhập email!');
+      return res.redirect('/auth/register');
+    }
+
+    // Kiểm tra email đã tồn tại
+    const existingUser = await User.findOne({ email, deleted: false }).lean();
+    if (existingUser) {
+      if (isJson) return res.status(400).json({ success: false, message: 'Email đã được đăng ký' });
+      req.flash('error', 'Email đã được đăng ký!');
+      return res.redirect('/auth/register');
+    }
+
+    // Xóa OTP cũ nếu có
+    await Otp.deleteOne({ email }).catch(() => {});
+
+    // Tạo OTP 6 số
+    const otp = generate.generaterandomNumber(6);
+    
+    // Lưu OTP vào database (hết hạn sau 5 phút)
+    await new Otp({
+      email,
+      otp,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000)
+    }).save();
+
+    // Gửi email
+    const subject = 'Xác thực đăng ký tài khoản Eco-Track';
+    const html = `
+    <!doctype html>
+    <html lang="vi">
+    <head>
+      <meta charset="UTF-8">
+      <title>Xác thực OTP - Eco-Track</title>
+    </head>
+    <body style="margin:0;padding:0;background:#f3faf6;font-family:system-ui,-apple-system,sans-serif;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3faf6;padding:24px 0;">
+        <tr>
+          <td align="center">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border-radius:16px;padding:32px 24px;box-shadow:0 8px 24px rgba(0,0,0,0.04);">
+              <tr>
+                <td align="center" style="padding-bottom:24px;">
+                  <img src="https://raw.githubusercontent.com/SIU-Sirocco-2025/Eco-Track/refs/heads/main/public/client/image/logo.png" alt="Eco-Track" style="width:72px;height:72px;border-radius:50%;background:#e8f7ee;border:3px solid #2ecc71;"/>
+                  <h1 style="margin:16px 0 4px;font-size:22px;font-weight:600;color:#222;">Eco-Track</h1>
+                  <p style="margin:0;font-size:14px;color:#6c757d;">Xác thực đăng ký tài khoản</p>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-size:14px;color:#343a40;line-height:1.6;">
+                  <p style="margin:0 0 12px;">Xin chào,</p>
+                  <p style="margin:0 0 16px;">Cảm ơn bạn đã đăng ký tài khoản Eco-Track. Vui lòng sử dụng mã OTP bên dưới để xác thực email:</p>
+                </td>
+              </tr>
+              <tr>
+                <td align="center" style="padding:20px 0 24px;">
+                  <div style="display:inline-block;padding:14px 28px;border-radius:999px;border:1px dashed #2ecc71;background:#e8f7ee;color:#27ae60;font-size:28px;font-weight:700;letter-spacing:6px;">
+                    ${otp}
+                  </div>
+                  <p style="margin:16px 0 0;font-size:13px;color:#6c757d;">Mã có hiệu lực trong <strong>5 phút</strong>.</p>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-size:13px;color:#6c757d;line-height:1.6;">
+                  <p style="margin:0 0 12px;">Nếu bạn không thực hiện đăng ký này, hãy bỏ qua email.</p>
+                  <p style="margin:0;">Trân trọng,<br><strong>Đội ngũ Eco-Track</strong></p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>`;
+
+    await sendMailHelper.sendMail(email, subject, html);
+
+    if (isJson) {
+      return res.json({ success: true, message: 'OTP đã được gửi đến email của bạn' });
+    }
+
+    req.flash('success', 'OTP đã được gửi! Vui lòng kiểm tra email.');
+    return res.redirect('/auth/register');
+
+  } catch (error) {
+    console.error('Send OTP error:', error);
+    if (isJson) {
+      return res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+    req.flash('error', 'Có lỗi xảy ra, vui lòng thử lại!');
+    return res.redirect('/auth/register');
+  }
 };

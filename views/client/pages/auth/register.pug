@@ -34,7 +34,31 @@ block main
                         .card-body.p-4.p-md-5
                             +authCardHeader('person-plus-fill', 'Tạo tài khoản mới', 'Đăng ký để bắt đầu theo dõi')
                             
-                            form(action="/auth/register" method="POST" novalidate)
+                            //- FORM 1: Nhập email và gửi OTP
+                            form#form-request-otp.needs-validation(novalidate)
+                                +authInput(
+                                    'email',
+                                    'email',
+                                    'email',
+                                    'Email',
+                                    'envelope-fill',
+                                    'your-email@example.com'
+                                )
+                                
+                                .d-grid.mb-3
+                                    button.btn.btn-success(type="submit")
+                                        i.bi.bi-send-fill.me-2
+                                        | Gửi mã OTP
+                                
+                                .text-center.small
+                                    span.text-muted Đã có mã OTP? 
+                                    a#show-verify-form.text-success.text-decoration-none(href="#")
+                                        | Nhập ngay
+
+                            //- FORM 2: Xác thực OTP và đăng ký (ẩn mặc định)
+                            form#form-verify-register.d-none(action="/auth/register" method="POST" novalidate)
+                                input(type="hidden" name="email")
+                                
                                 +authInput(
                                     'fullName',
                                     'fullName',
@@ -46,14 +70,20 @@ block main
                                     3
                                 )
                                 
-                                +authInput(
-                                    'email',
-                                    'email',
-                                    'email',
-                                    'Email',
-                                    'envelope-fill',
-                                    'your-email@example.com'
-                                )
+                                .mb-3
+                                    label.form-label.fw-medium(for="otp") Mã OTP
+                                    .input-group
+                                        span.input-group-text
+                                            i.bi.bi-shield-check.text-success
+                                        input#otp.form-control(
+                                            type="text"
+                                            name="otp"
+                                            required
+                                            maxlength="6"
+                                            pattern="[0-9]{6}"
+                                            placeholder="000000"
+                                        )
+                                        .invalid-feedback Vui lòng nhập mã OTP 6 số
                                 
                                 +authPasswordInput(
                                     'password',
@@ -89,15 +119,22 @@ block main
                                 +termsModal()
                                 +privacyModal()
                                 
-                                +authSubmitButton('Đăng ký tài khoản', 'person-plus')
-                                
-                                .text-center.mt-4
-                                    +authLinkText(
-                                        'Đã có tài khoản?',
-                                        'Đăng nhập ngay',
-                                        '/auth/login',
-                                        'box-arrow-in-right'
-                                    )
-                                
-                                +authDivider()
-                                +authBackLink()
+                                .d-flex.gap-2.mb-3
+                                    button#btn-back.btn.btn-outline-secondary.flex-grow-1(type="button")
+                                        i.bi.bi-arrow-left.me-1
+                                        | Quay lại
+                                    button.btn.btn-success.flex-grow-1(type="submit")
+                                        i.bi.bi-person-plus.me-1
+                                        | Đăng ký
+                            
+                            .text-center.mt-4
+                                .small.text-muted.mb-2 Đã có tài khoản?
+                                a.text-decoration-none.text-success.fw-medium(href="/auth/login")
+                                    i.bi.bi-box-arrow-in-right.me-1
+                                    | Đăng nhập ngay
+                            
+                            hr.my-3
+                            .text-center.small
+                                a.text-decoration-none.text-secondary(href="/") 
+                                    i.bi.bi-arrow-left.me-1
+                                    | Về trang chủ
