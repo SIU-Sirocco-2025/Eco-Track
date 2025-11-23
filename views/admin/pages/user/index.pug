@@ -10,9 +10,8 @@ block main
             thead
                 tr
                     th #
-                    th Username
+                    th FullName
                     th Email
-                    th Role
                     th Ngày tạo
                     th Hành động
             tbody#userTable
@@ -27,20 +26,14 @@ block main
                 button.modal-close(onclick="closeUserModal()") ✕
             .modal-body
                 .form-group
-                    label Username
-                    input#inputUsername(type="text", placeholder="Nhập username")
+                    label FullName
+                    input#inputFullName(type="text", placeholder="Nhập full name")
                 .form-group
                     label Email
                     input#inputEmail(type="email", placeholder="Nhập email")
                 .form-group
-                    label Role
-                    select#inputRole
-                        option(value="user") User
-                        option(value="admin") Admin
-                        option(value="moderator") Moderator
-                .form-group
                     label Password
-                    input#inputPassword(type="password", placeholder="Nhập mật khẩu")
+                    input#inputPassword(type="password", placeholder="Nhập mật khẩu (để trống nếu không đổi)")
             .modal-footer
                 button.btn-cancel(onclick="closeUserModal()") Hủy
                 button.btn-submit(onclick="saveUser()") Lưu
@@ -326,13 +319,12 @@ block main
                         const row = document.createElement('tr');
                         row.innerHTML = `
                             <td>${idx + 1}</td>
-                            <td>${user.username}</td>
+                            <td>${user.fullName}</td>
                             <td>${user.email}</td>
-                            <td><span class="role-badge ${user.role}">${user.role}</span></td>
                             <td>${createdAt}</td>
                             <td>
                                 <div class="action-btns">
-                                    <button class="btn-edit" onclick="editUser('${user._id}', '${user.username}', '${user.email}', '${user.role}')">Sửa</button>
+                                    <button class="btn-edit" onclick="editUser('${user._id}', '${user.fullName}', '${user.email}')">Sửa</button>
                                     <button class="btn-delete" onclick="deleteUser('${user._id}')">Xóa</button>
                                 </div>
                             </td>
@@ -345,19 +337,17 @@ block main
         function openAddModal() {
             editingUserId = null;
             document.getElementById('modalTitle').textContent = 'Thêm User Mới';
-            document.getElementById('inputUsername').value = '';
+            document.getElementById('inputFullName').value = '';
             document.getElementById('inputEmail').value = '';
-            document.getElementById('inputRole').value = 'user';
             document.getElementById('inputPassword').value = '';
             document.getElementById('userModal').classList.add('active');
         }
 
-        function editUser(id, username, email, role) {
+        function editUser(id, fullName, email) {
             editingUserId = id;
             document.getElementById('modalTitle').textContent = 'Chỉnh sửa User';
-            document.getElementById('inputUsername').value = username;
+            document.getElementById('inputFullName').value = fullName;
             document.getElementById('inputEmail').value = email;
-            document.getElementById('inputRole').value = role;
             document.getElementById('inputPassword').value = '';
             document.getElementById('userModal').classList.add('active');
         }
@@ -367,22 +357,24 @@ block main
         }
 
         function saveUser() {
-            const username = document.getElementById('inputUsername').value.trim();
+            const fullName = document.getElementById('inputFullName').value.trim();
             const email = document.getElementById('inputEmail').value.trim();
-            const role = document.getElementById('inputRole').value;
             const password = document.getElementById('inputPassword').value;
 
-            if (!username || !email) {
-                alert('Vui lòng nhập username và email');
+            if (!fullName || !email) {
+                alert('Vui lòng nhập họ tên và email');
                 return;
             }
 
             if (editingUserId) {
                 // Update
+                const payload = { fullName, email };
+                if (password) payload.password = password;
+                
                 fetch(`/admin/user/api/update/${editingUserId}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, email, role })
+                    body: JSON.stringify(payload)
                 })
                 .then(r => r.json())
                 .then(data => {
@@ -403,7 +395,7 @@ block main
                 fetch('/admin/user/api/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, email, role, password })
+                    body: JSON.stringify({ fullName, email, password })
                 })
                 .then(r => r.json())
                 .then(data => {

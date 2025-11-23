@@ -32,17 +32,15 @@ block main
                                     thead
                                         tr
                                             th# ID
-                                            th Username
+                                            th FullName
                                             th Email
-                                            th Role
                                             th.text-center Hành động
                                     tbody
                                         each user in users
                                             tr
                                                 td= user._id
-                                                td= user.username
+                                                td= user.fullName
                                                 td= user.email
-                                                td= user.role
                                                 td.text-center
                                                     form.d-inline(method='post', action= prefixAdmin + '/users/' + user._id + '?_method=DELETE')
                                                         button.btn.btn-sm.btn-danger(type='submit') Xoá
