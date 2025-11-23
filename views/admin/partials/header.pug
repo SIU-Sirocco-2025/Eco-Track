@@ -1,36 +1,20 @@
-header.header
-  nav.navbar.navbar-expand-lg.navbar-dark.bg-dark.sticky-top.shadow-sm
-    .container-fluid
-      a.navbar-brand.ms-3(href=`${prefixAdmin}/dashboard`)
-          i.bi.bi-speedometer2.me-2
-          | ADMIN
-      button.navbar-toggler(
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#adminNavbar"
-        aria-controls="adminNavbar"
-        aria-expanded="false"
-        aria-label="Toggle navigation"
-      )
-        span.navbar-toggler-icon
-      .collapse.navbar-collapse#adminNavbar
-        .ms-auto.d-flex.align-items-center
-          .dropdown
-            a#userMenu.dropdown-toggle.d-flex.align-items-center.text-decoration-none.text-white(
-              href="#"
-              role="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            )
-              i.bi.bi-person-circle.fs-5.me-2
-            ul.dropdown-menu.dropdown-menu-end(aria-labelledby="userMenu")
-              li
-                a.dropdown-item(href=`${prefixAdmin}/my-account`)
-                  i.bi.bi-gear.me-2
-                  | Tài khoản
-              li
-                hr.dropdown-divider
-              li
-                a.dropdown-item.text-danger(href=`${prefixAdmin}/auth/logout`)
-                  i.bi.bi-box-arrow-right.me-2
-                  | Đăng xuất
+aside.sidebar.bg-light.p-3(style="width: 200px; min-height: 100vh; position: fixed; left: 0; top: 0; overflow-y: auto;")
+  .mb-4
+    h5.fw-bold Eco-Track
+  ul.nav.flex-column.gap-2
+    li.nav-item
+      a.nav-link.d-flex.align-items-center(href="/admin/dashboard")
+        i.bi.bi-speedometer2.me-2
+        span Dashboard
+    li.nav-item
+      a.nav-link.d-flex.align-items-center(href="/admin/aqi")
+        i.bi.bi-cloud.me-2
+        span AQI
+    li.nav-item
+      a.nav-link.d-flex.align-items-center(href="/admin/weather")
+        i.bi.bi-cloud-sun.me-2
+        span Thời tiết
+    li.nav-item.border-top.pt-2.mt-2
+      a.nav-link.d-flex.align-items-center(href="/")
+        i.bi.bi-house.me-2
+        span Trang chủ
