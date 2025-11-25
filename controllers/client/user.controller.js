@@ -439,7 +439,6 @@ module.exports.otp = (req, res) => {
   });
 };
 
-<<<<<<< HEAD
 // [POST] /auth/register/send-otp - Gửi OTP
 module.exports.sendRegisterOTP = async (req, res) => {
   const isJson = req.is('application/json');
@@ -580,7 +579,6 @@ module.exports.googleAuthCallback = (req, res, next) => {
 };
 
 
-=======
 // [GET] /auth/api-key - Lấy API key hiện tại
 module.exports.getApiKey = async (req, res) => {
   try {
@@ -639,4 +637,3 @@ module.exports.regenerateApiKey = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Có lỗi xảy ra!', error: error.message });
   }
 };
->>>>>>> feature/air-quality
