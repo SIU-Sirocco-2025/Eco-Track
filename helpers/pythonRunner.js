@@ -1,0 +1,123 @@
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+
+/**
+ * Lấy đường dẫn Python command (ưu tiên venv)
+ */
+function getPythonCommand() {
+  // Kiểm tra venv trước
+  const venvPaths = [
+    path.join(process.cwd(), 'venv', 'bin', 'python'),     // Linux/Mac
+    path.join(process.cwd(), 'venv', 'Scripts', 'python.exe') // Windows
+  ];
+  
+  for (const venvPath of venvPaths) {
+    if (fs.existsSync(venvPath)) {
+      console.log(`[Python] Using virtual environment: ${venvPath}`);
+      return venvPath;
+    }
+  }
+  
+  // Fallback: dùng system Python
+  const systemCmd = process.platform === 'win32' ? 'python' : 'python3';
+  console.log(`[Python] Using system Python: ${systemCmd}`);
+  return systemCmd;
+}
+
+/**
+ * Chạy Python script và trả về kết quả
+ * @param {string} scriptPath - Đường dẫn script Python
+ * @param {Array} args - Các tham số dòng lệnh
+ * @returns {Promise<object>} - Kết quả từ Python
+ */
+module.exports.runPythonScript = (scriptPath, args = []) => {
+  return new Promise((resolve, reject) => {
+    const pythonCmd = getPythonCommand();
+    
+    const pythonProcess = spawn(pythonCmd, [scriptPath, ...args]);
+    
+    let stdout = '';
+    let stderr = '';
+    
+    pythonProcess.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+    
+    pythonProcess.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+    
+    pythonProcess.on('close', (code) => {
+      if (code !== 0) {
+        return reject(new Error(`Python script failed: ${stderr || stdout}`));
+      }
+      
+      try {
+        // Parse JSON output từ Python
+        const result = JSON.parse(stdout.trim());
+        resolve(result);
+      } catch (e) {
+        reject(new Error(`Failed to parse Python output: ${stdout}`));
+      }
+    });
+    
+    pythonProcess.on('error', (error) => {
+      reject(new Error(`Failed to start Python: ${error.message}`));
+    });
+  });
+};
+
+/**
+ * Chạy Python script với CSV từ stdin và nhận JSON từ stdout
+ * @param {string} scriptPath - Đường dẫn script Python
+ * @param {Array} args - Tham số dòng lệnh
+ * @param {string} csvData - Dữ liệu CSV để gửi qua stdin
+ * @returns {Promise<object>} - Kết quả JSON từ Python
+ */
+module.exports.runPythonScriptWithStdin = (scriptPath, args = [], csvData = '') => {
+  return new Promise((resolve, reject) => {
+    const pythonCmd = getPythonCommand();
+    
+    const pythonProcess = spawn(pythonCmd, [scriptPath, ...args], {
+      env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
+    });
+    
+    let stdout = '';
+    let stderr = '';
+    
+    // Gửi CSV qua stdin với UTF-8 encoding
+    if (csvData) {
+      pythonProcess.stdin.write(csvData, 'utf8');
+      pythonProcess.stdin.end();
+    }
+    
+    pythonProcess.stdout.setEncoding('utf8');
+    pythonProcess.stderr.setEncoding('utf8');
+    
+    pythonProcess.stdout.on('data', (data) => {
+      stdout += data;
+    });
+    
+    pythonProcess.stderr.on('data', (data) => {
+      stderr += data;
+    });
+    
+    pythonProcess.on('close', (code) => {
+      if (code !== 0) {
+        return reject(new Error(`Python failed: ${stderr || stdout}`));
+      }
+      
+      try {
+        const result = JSON.parse(stdout.trim());
+        resolve(result);
+      } catch (e) {
+        reject(new Error(`Failed to parse Python output: ${stdout}`));
+      }
+    });
+    
+    pythonProcess.on('error', (error) => {
+      reject(new Error(`Failed to start Python: ${error.message}`));
+    });
+  });
+};

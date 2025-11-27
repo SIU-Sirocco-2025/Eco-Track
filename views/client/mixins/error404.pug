@@ -1,0 +1,7 @@
+mixin error404() 
+    .container.d-flex.flex-column.justify-content-center.align-items-center.min-vh-100
+        i.bi.bi-emoji-frown.display-1.text-primary.mb-4
+        h1.display-3.text-danger 404
+        h2.text-secondary.mb-3 Ôi! Không tìm thấy trang.
+        p.text-muted.mb-4 Trang bạn đang tìm kiếm có thể đã bị xóa, đổi tên hoặc tạm thời không khả dụng.
+        a.btn.btn-primary.btn-lg(href=`${prefixAdmin}/dashboard`) Về trang chủ

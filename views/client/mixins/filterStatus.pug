@@ -1,0 +1,6 @@
+mixin filterStatus(buttonStatus)
+    each button in buttonStatus 
+        button(
+            class=button.class
+            button-status=button.status
+        ) #{button.name}

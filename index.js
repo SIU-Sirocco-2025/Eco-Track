@@ -6,7 +6,8 @@ const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const flash = require('express-flash');
 const moment = require('moment')
-require('dotenv').config(); 
+require('dotenv').config();
+const passport = require('./config/passport'); 
 // database connection
 const database = require('./config/database')
 database.connect();
@@ -14,6 +15,7 @@ database.connect();
 // Route
 const clientRoutes = require('./routers/client/index.route');
 const adminRoutes = require('./routers/admin/index.route');
+const apiRoutes = require('./routers/api/index.route'); // Thêm dòng này
 const system = require('./config/system');
 
 
@@ -40,6 +42,10 @@ app.use(session({
 }));
 app.use(flash());
 
+// Passport middleware - Thêm phần này
+app.use(passport.initialize());
+app.use(passport.session());
+
 // App local variables
 app.locals.moment = moment;
 app.locals.prefixAdmin = system.prefixAdmin;
@@ -48,8 +54,17 @@ app.locals.prefixAdmin = system.prefixAdmin;
 app.use('/tinymce', express.static(path.join(__dirname, 'node_modules', 'tinymce')));
 // End TinyMCE
 
+// Inject currentUser into templates
+const { injectUser } = require('./middlewares/auth.middleware');
+app.use(injectUser);
+
+// Inject adminUser into admin templates
+const { injectAdminUser } = require('./middlewares/admin.middleware');
+app.use(injectAdminUser);
+
 clientRoutes(app);
 adminRoutes(app);
+apiRoutes(app); // Thêm dòng này
 
 app.use((req, res) => {
     res.status(404).render('client/pages/errors/404', {

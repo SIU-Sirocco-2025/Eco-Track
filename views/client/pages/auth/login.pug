@@ -1,0 +1,112 @@
+extends ../../layouts/auth.pug
+include ../../mixins/alert.pug
+
+block main
+    +showAlertSuccess(5000)
+    +showAlertError(5000)
+
+    .login-page-wrapper.min-vh-100.d-flex.align-items-center.py-5
+        .container
+            .row.g-5.align-items-center
+                // Left brand / intro
+                .col-lg-6.order-2.order-lg-1
+                    .brand-intro
+                        .d-inline-flex.align-items-center.mb-4.gap-3
+                            img.rounded-circle.shadow(
+                                src="/client/image/logo.png"
+                                alt="Eco-Track"
+                                width="72"
+                                height="72"
+                                style="object-fit:cover;border:3px solid #2ecc71"
+                            )
+                            h1.h3.mb-0.fw-semibold.text-dark Eco-Track
+                        p.text-secondary.small.mb-4(style="max-width:540px")
+                            | Hệ thống theo dõi và dự báo chất lượng không khí TP. Hồ Chí Minh theo thời gian thực.
+                        ul.list-unstyled.small.text-secondary.mb-4.feature-points
+                            li.mb-2
+                                i.bi.bi-wind.text-success.me-2
+                                | Theo dõi AQI theo thời gian thực
+                            li.mb-2
+                                i.bi.bi-map.text-success.me-2
+                                | Bản đồ nhiệt chất lượng không khí
+                            li.mb-2
+                                i.bi.bi-graph-up-arrow.text-success.me-2
+                                | Dự báo AQI 24 giờ bằng AI
+                            li
+                                i.bi.bi-database.text-success.me-2
+                                | Truy cập API để lấy dữ liệu
+                        .d-flex.flex-wrap.gap-2
+                            a.btn.btn-success.btn-sm(href="/about")
+                                i.bi.bi-info-circle.me-1
+                                | Giới thiệu
+                            a.btn.btn-outline-success.btn-sm(href="/aqi")
+                                i.bi.bi-map.me-1
+                                | Xem bản đồ AQI
+                // Right form
+                .col-lg-5.ms-lg-auto.order-1.order-lg-2
+                    .card.border-0.shadow-lg.login-card
+                        .card-body.p-4.p-md-5
+                            .text-center.mb-4
+                                span.d-inline-flex.align-items-center.justify-content-center.rounded-circle.brand-circle-light(style="background: #e8f7ee; width: 80px; height: 80px;")
+                                    i.bi.bi-key-fill.fs-2.text-success
+                                h2.h5.mt-3.mb-1.fw-semibold.text-dark Đăng nhập
+                            form(action="/auth/login" method="POST" novalidate)
+                                .mb-3
+                                    label.form-label.fw-medium(for="email") Email
+                                    .input-group
+                                        span.input-group-text
+                                            i.bi.bi-envelope-fill.text-success
+                                        input#email.form-control(
+                                            type="email"
+                                            name="email"
+                                            placeholder="your-email@example.com"
+                                            required
+                                        )
+                                .mb-3
+                                    label.form-label.fw-medium(for="password") Mật khẩu
+                                    .input-group.input-password-group
+                                        span.input-group-text
+                                            i.bi.bi-lock-fill.text-success
+                                        input#password.form-control(
+                                            type="password"
+                                            name="password"
+                                            minlength="6"
+                                            required
+                                            placeholder="••••••••"
+                                        )
+                                        button#togglePassword.btn.btn-outline-secondary.border-start-0(
+                                            type="button"
+                                            tabindex="-1"
+                                            aria-label="Hiển thị / ẩn mật khẩu"
+                                        )
+                                            i.bi.bi-eye-slash
+                                .d-flex.justify-content-between.align-items-center.mb-4
+                                    .form-check
+                                        input#rememberMe.form-check-input(type="checkbox" name="remember")
+                                        label.form-check-label.small(for="rememberMe") Ghi nhớ đăng nhập
+                                    a.text-decoration-none.text-success.fw-medium(href="/auth/forgot-password")
+                                        i.bi.bi-key.me-1
+                                        | Quên mật khẩu?
+                                button.btn.btn-success.w-100.py-2.fw-semibold(type="submit")
+                                    i.bi.bi-box-arrow-in-right.me-2
+                                    | Đăng nhập
+                                //- Divider
+                                .position-relative.my-4
+                                    hr
+                                    span.position-absolute.top-50.start-50.translate-middle.bg-white.px-3.small.text-muted hoặc
+                                
+                                //- Google Login Button
+                                a.btn.btn-outline-dark.w-100.py-2(href="/auth/google")
+                                    i.bi.bi-google.me-2
+                                    | Đăng nhập với Google
+                                .text-center.mt-4
+                                    .small.text-muted.mb-2 Chưa có tài khoản?
+                                    a.text-decoration-none.text-success.fw-medium(href="/auth/register")
+                                        i.bi.bi-person-plus.me-1
+                                        | Đăng ký ngay
+                                hr.my-3
+                                .text-center.small
+                                    a.text-decoration-none.text-secondary(href="/") 
+                                        i.bi.bi-arrow-left.me-1
+                                        | Về trang chủ
+    

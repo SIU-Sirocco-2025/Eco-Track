@@ -1,0 +1,113 @@
+mixin missionCard(icon, title, description)
+  .col-md-4
+    .card.border-0.shadow-sm.h-100
+      .card-body.text-center
+        .bg-success.bg-opacity-10.rounded-circle.d-inline-flex.align-items-center.justify-content-center.mb-3(
+          style='width: 80px; height: 80px;'
+        )
+          i(class=`bi bi-${icon} fs-1 text-success`)
+        h5.card-title= title
+        p.card-text.text-secondary= description
+
+mixin featureItem(icon, title, description)
+  .col-md-6.col-lg-3
+    .d-flex.align-items-start
+      i(class=`bi bi-${icon} fs-3 text-success me-3`)
+      div
+        h5= title
+        p.small.text-secondary= description
+
+mixin techCard(icon, title, technologies)
+  .col-md-4
+    .card.border-0.shadow-sm
+      .card-body
+        h5.card-title
+          i(class=`bi bi-${icon} me-2 text-success`)
+          = title
+        ul.list-unstyled.small
+          each tech in technologies
+            li
+              i.bi.bi-check-circle.text-success.me-2
+              = tech
+
+mixin teamCard(teamName, description, school, githubUrl)
+  .row.justify-content-center
+    .col-12.text-center
+      .card.border-0.shadow-sm.d-inline-block
+        .card-body.px-5.py-4
+          h4.mb-3
+            i.bi.bi-award.me-2.text-success
+            = teamName
+          p.text-secondary.mb-2= description
+          p.small.text-muted= school
+          .d-flex.justify-content-center.gap-3.mt-3
+            a.btn.btn-outline-success.btn-sm(
+              href=githubUrl
+              target='_blank'
+              rel='noopener noreferrer'
+            )
+              i.bi.bi-github.me-2
+              | GitHub Repository
+
+mixin contactCard(icon, title, description, listItems)
+  .col-md-6
+    .card.border-0.shadow-sm.h-100
+      .card-body
+        h5.card-title
+          i(class=`bi bi-${icon} me-2 text-success`)
+          = title
+        p.card-text= description
+        ul.list-unstyled.small
+          each item in listItems
+            li
+              i.bi.bi-dot
+              = item
+
+mixin licenseCard(title, licenseName, licenseDescription, licenseUrl)
+  .col-md-6
+    .card.border-0.shadow-sm.h-100
+      .card-body
+        h5.card-title
+          i.bi.bi-shield-check.me-2.text-success
+          = title
+        p.card-text Dự án được phát hành theo giấy phép mã nguồn mở
+        .alert.alert-success.border-0.mb-0
+          strong
+            i.bi.bi-file-text.me-2
+            = licenseName
+          p.small.mb-0.mt-2= licenseDescription
+          a.small(href=licenseUrl target='_blank')
+            i.bi.bi-box-arrow-up-right.me-1
+            | Đọc toàn văn giấy phép
+
+mixin heroSection(title, description, logoPath)
+  .bg-success.bg-opacity-10.py-5
+    .container
+      .row.align-items-center.gy-4
+        .col-lg-6
+          h1.display-5.fw-bold.mb-3= title
+          p.lead.text-secondary= description
+          .d-flex.gap-2.flex-wrap
+            a.btn.btn-success(href='/')
+              i.bi.bi-house-door.me-2
+              | Trang chủ
+            a.btn.btn-outline-success(href='/aqi')
+              i.bi.bi-map.me-2
+              | Xem bản đồ AQI
+        .col-lg-6
+          img.img-fluid.rounded.shadow-sm(
+            src=logoPath
+            alt='Eco-Track Logo'
+            style='max-height: 300px; width: auto; display: block; margin: 0 auto;'
+          )
+
+mixin ctaSection(title, description, buttons)
+  .bg-success.text-white.py-5.text-center
+    .container
+      h2.h4.mb-3= title
+      p.mb-4= description
+      .d-flex.gap-2.justify-content-center.flex-wrap
+        each button in buttons
+          a(class=button.class href=button.url)
+            i(class=button.icon)
+            = button.text

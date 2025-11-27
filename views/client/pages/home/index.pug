@@ -1,5 +1,219 @@
 extends ../../layouts/default.pug
+include ../../mixins/moment.pug
+include ../../mixins/aqi.pug
+include ../../mixins/alert.pug
+include ../../mixins/stats-grid.pug
+
 block main
-  .container.py-4
-    h1.h3 #{title}
-    p.text-secondary Load dữ liệu.
+  +showAlertSuccess(5000)
+  +showAlertError(5000)
+  
+  // Hero Breathing Section - Dark Theme with Animated Globe
+  section.hero-breathing(id='hero-breathing', data-aqi-status='good')
+    .hero-breathing__background
+    
+    // Particles background
+    .hero-particles
+      each i in [0,1,2,3,4,5,6,7,8,9,10,11,12]
+        .particle
+    
+    // Main content
+    .container.position-relative.z-1.py-5
+      .row.align-items-center.gy-4
+        // Left side - Globe with badges
+        .col-lg-6.text-center
+          // Animated Globe
+          .hero-globe
+            .globe-ring
+            .globe-ring
+            .globe-ring
+            
+            .globe-circle
+              .globe-shield
+              i.bi.bi-lungs.globe-icon
+            
+            // Floating badges
+            .globe-badge.badge-aqi 🌍
+            .globe-badge.badge-leaf 🍃
+            .globe-badge.badge-wind 💨
+        
+        // Right side - Text and buttons
+        .col-lg-6.hero-content
+          .eco-track-label Eco
+          h1.hero-title Track
+          p.hero-subtitle Hôm nay thành phố đang thở như thế nào?
+          
+          // CTA Buttons
+          .d-flex.gap-3.flex-wrap.mt-4
+            a.btn-hero(href='#forecast', role='button')
+              i.bi.bi-graph-up-arrow
+              | Dự báo 24 giờ tới
+            a.btn-hero.btn-hero-secondary(href='/aqi', role='button')
+              i.bi.bi-map
+              | Xem bản đồ AQI
+      
+      // Scroll indicator
+      .scroll-indicator
+        i.bi.bi-chevron-down
+
+  // Air Quality Details Section
+  .container.py-5#air
+    h2.section-title Chất lượng không khí hiện tại
+    
+    if reading
+      // AQI Recommendation Card
+      - const aqi = Number(reading.aqius) || 0
+      - let recIcon, recMsg, recLevel
+      
+      if aqi <= 50
+        - recIcon = 'bi-emoji-smile'
+        - recMsg = 'Không khí tốt. Bạn có thể hoạt động bình thường ngoài trời.'
+        - recLevel = 'good'
+      else if aqi <= 100
+        - recIcon = 'bi-emoji-neutral'
+        - recMsg = 'Chất lượng trung bình. Nhóm nhạy cảm nên hạn chế tiếp xúc lâu ngoài trời.'
+        - recLevel = 'moderate'
+      else if aqi <= 150
+        - recIcon = 'bi-emoji-frown'
+        - recMsg = 'Người nhạy cảm hạn chế vận động mạnh ngoài trời.'
+        - recLevel = 'unhealthy-for-sensitive'
+      else if aqi <= 200
+        - recIcon = 'bi-exclamation-triangle'
+        - recMsg = 'Mọi người nên hạn chế vận động mạnh. Người nhạy cảm tránh hoạt động ngoài trời.'
+        - recLevel = 'unhealthy'
+      else if aqi <= 300
+        - recIcon = 'bi-exclamation-triangle-fill'
+        - recMsg = 'Cảnh báo: Tất cả mọi người nên tránh hoạt động ngoài trời. Sử dụng khẩu trang N95.'
+        - recLevel = 'very-unhealthy'
+      else
+        - recIcon = 'bi-exclamation-octagon'
+        - recMsg = 'NGUY HIỂM: Mọi người nên ở trong nhà. Chỉ ra ngoài khi cần thiết với khẩu trang N95.'
+        - recLevel = 'hazardous'
+      
+      .recommendation-card(class='recommendation-' + recLevel)
+        .recommendation-icon
+          i(class='bi ' + recIcon)
+        .recommendation-content
+          .recommendation-text= recMsg
+        .recommendation-bg
+      
+      // Stats Grid
+      +statsGrid(reading)
+    else
+      .alert.alert-secondary.mb-0
+        i.bi.bi-info-circle.me-2
+        | Không có dữ liệu AQI hiển thị. Vui lòng thử lại sau.
+
+  
+  // Forecast Section
+  .container.py-5#forecast
+    h2.section-title Dự báo AQI 24 giờ tới
+    
+    .card.border-0.shadow-sm
+      .card-body
+        .row.g-3.mb-4
+          .col-md-6
+            label.form-label
+              i.bi.bi-map-pin.me-2
+              | Chọn quận để dự báo
+            select#district-select.form-select.form-select-lg
+              option(value='') -- Chọn quận --
+          
+          .col-md-6.d-flex.align-items-end
+            button#btn-forecast.btn.btn-lg.w-100(type='button', style='background: linear-gradient(135deg, #2d6a2d, #169444); color: white; border: none; font-weight: 600;')
+              i.bi.bi-graph-up-arrow.me-2
+              | Xem dự báo
+        
+        // Loading State
+        #forecast-loading.d-none
+          .text-center.py-4
+            .spinner-border.text-success.mb-3(role='status')
+            p.text-muted Đang tải dữ liệu dự báo...
+        
+        // Error State
+        #forecast-error.alert.alert-danger.d-none(role='alert')
+        
+        // Results
+        #forecast-result.d-none
+          .row.g-3.mb-4
+            .col-md-3
+              .stat-card
+                .stat-card__icon
+                  i.bi.bi-geo-alt
+                .stat-card__body
+                  .stat-card__label Khu vực
+                  .stat-card__value#forecast-district --
+            .col-md-3
+              .stat-card
+                .stat-card__icon
+                  i.bi.bi-bar-chart
+                .stat-card__body
+                  .stat-card__label AQI Trung bình
+                  .stat-card__value#forecast-mean --
+            .col-md-3
+              .stat-card
+                .stat-card__icon
+                  i.bi.bi-arrow-up-circle
+                .stat-card__body
+                  .stat-card__label AQI Cao nhất
+                  .stat-card__value#forecast-max --
+            .col-md-3
+              .stat-card
+                .stat-card__icon
+                  i.bi.bi-arrow-down-circle
+                .stat-card__body
+                  .stat-card__label AQI Thấp nhất
+                  .stat-card__value#forecast-min --
+          
+          .card.border-0
+            .card-body
+              h5.mb-3
+                i.bi.bi-graph-up-arrow.me-2
+                | Chi tiết 24 giờ
+              #forecast-chart.mb-3
+              #forecast-table-container
+  
+  // Info Section  
+  .container.py-5
+    h2.section-title Thông tin AQI
+    
+    .row.g-4
+      .col-md-6
+        .card.border-0.shadow-sm
+          .card-body.p-4
+            h5.mb-3
+              i.bi.bi-info-circle.me-2
+              | Chỉ số AQI là gì?
+            p.text-muted.mb-0 AQI (Air Quality Index) là chỉ số đo lường chất lượng không khí. Giá trị càng cao, chất lượng không khí càng tệ. Chỉ số AQI được tính dựa trên nồng độ các chất ô nhiễm như PM2.5, PM10, O3, NO2, SO2 và CO.
+      
+      .col-md-6
+        .card.border-0.shadow-sm
+          .card-body.p-4
+            h5.mb-3
+              i.bi.bi-shield-check.me-2
+              | Bảng tiêu chuẩn AQI
+            .small
+              .d-flex.justify-content-between.mb-2
+                span
+                  span.badge.rounded-pill(style='background: #d4f1d4; color: #2d6a2d;') 0-50
+                span.text-muted: small Tốt
+              .d-flex.justify-content-between.mb-2
+                span
+                  span.badge.rounded-pill(style='background: #fff8dd; color: #8b7a00;') 51-100
+                span.text-muted: small Trung bình
+              .d-flex.justify-content-between.mb-2
+                span
+                  span.badge.rounded-pill(style='background: #ffe8d1; color: #a64d0a;') 101-150
+                span.text-muted: small Nhạy cảm
+              .d-flex.justify-content-between.mb-2
+                span
+                  span.badge.rounded-pill(style='background: #ffd9d9; color: #8b0000;') 151-200
+                span.text-muted: small Không lành mạnh
+              .d-flex.justify-content-between.mb-2
+                span
+                  span.badge.rounded-pill(style='background: #e8d4f1; color: #5a2d6a;') 201-300
+                span.text-muted: small Rất không lành mạnh
+              .d-flex.justify-content-between
+                span
+                  span.badge.rounded-pill(style='background: #ffcccc; color: #660000;') 300+
+                span.text-muted: small Nguy hiểm
