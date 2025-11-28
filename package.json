@@ -16,7 +16,12 @@
     "worker": "npm run worker:all",
     "worker:all": "concurrently -k -n airvisual,openaq -c cyan,magenta \"npm run start:airvisual\" \"npm run start:openaq\"",
     "worker:dev": "concurrently -k -n airvisual,openaq -c cyan,magenta \"npm run dev:airvisual\" \"npm run dev:openaq\"",
-    "seed:72h": "node scripts/seed-72h-data.js"
+    "seed:72h": "node scripts/seed-72h-data.js",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop eco-track",
+    "pm2:restart": "pm2 restart eco-track",
+    "pm2:logs": "pm2 logs eco-track",
+    "pm2:monitor": "pm2 monit"
   },
   "keywords": [],
   "author": "",

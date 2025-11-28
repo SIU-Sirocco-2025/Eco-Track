@@ -19,7 +19,8 @@
     const valueEl = document.querySelector('[data-aqi]');
     if (!root || !valueEl) return;
     const info = aqiClass(Number(aqi || 0));
-    valueEl.textContent = aqi ?? '--';
+    const displayAqi = typeof aqi === 'number' ? Math.round(aqi) : (aqi ?? '--');
+    valueEl.textContent = displayAqi;
     root.classList.remove(
       'aqi-good', 'aqi-moderate', 'aqi-unhealthy', 'aqi-very-unhealthy', 'aqi-hazardous', 'aqi-unknown'
     );
@@ -159,8 +160,9 @@
     }
     cityHeroEl.classList.remove('d-none');
     const props = station.properties || {};
-    const aqius = Number(props.aqius || 0) || '--';
-    const info = aqiClass(aqius);
+    const rawAqi = Number(props.aqius || 0);
+    const aqius = rawAqi ? Math.round(rawAqi) : '--';
+    const info = aqiClass(rawAqi);
     const tsText = props.ts ? formatTime(props.ts) : '--';
     const label = props.city || 'Ho Chi Minh City';
     const key = props.cityKey || 'city-wide';
@@ -225,13 +227,14 @@
       .map(m => {
         const meta = sensorMeta(m.key);
         const warn = meta.critical;
+        const displayValue = typeof m.value === 'number' ? m.value.toFixed(1) : (m.value ?? '--');
         return `
         <tr class="${warn ? 'table-warning' : ''}">
           <td class="text-muted">
             <i class="bi ${meta.icon} me-1"></i>${meta.display}
           </td>
           <td>
-            <span class="fw-semibold">${m.value ?? '--'}</span>
+            <span class="fw-semibold">${displayValue}</span>
             ${warn ? '<span class="badge bg-danger-subtle text-danger ms-2">Canh bao</span>' : ''}
           </td>
           <td class="text-muted">${meta.unit}</td>
@@ -428,8 +431,9 @@
         iconAnchor
       });
       const label = props.city || 'Tram';
+      const displayAqi = typeof aqius === 'number' ? Math.round(aqius) : aqius;
       const marker = L.marker([lat, lng], { icon: divIcon })
-        .bindTooltip(`<strong>${label}</strong><br/>AQI: ${aqius} (${info.label})`, { direction: 'top' });
+        .bindTooltip(`<strong>${label}</strong><br/>AQI: ${displayAqi} (${info.label})`, { direction: 'top' });
       markerLayer.addLayer(marker);
       const key = props.cityKey || props.city || `station-${idx}`;
       markerById.set(key, marker);
@@ -447,8 +451,9 @@
     }
     sorted.forEach((f, idx) => {
       const props = f.properties || {};
-      const aqius = Number(props.aqius || 0) || '--';
-      const info = aqiClass(aqius);
+      const rawAqi = Number(props.aqius || 0);
+      const aqius = rawAqi ? Math.round(rawAqi) : '--';
+      const info = aqiClass(rawAqi);
       const tsText = props.ts ? formatTime(props.ts) : '--';
       const col = document.createElement('div');
       col.className = 'col';
