@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "npm run start:web && npm run start:openaq",
-    "dev": "npm run dev:web && npm run dev:openaq",
+    "start": "concurrently -n web,openaq \"node index.js\" \"node scripts/fetch-openaq-hours.js\"",
+    "dev": "concurrently -n web,openaq \"nodemon index.js\" \"nodemon scripts/fetch-openaq-hours.js\"",
     "start:web": "node index.js",
     "start:openaq": "node scripts/fetch-openaq-hours.js",
     "dev:web": "nodemon index.js",
