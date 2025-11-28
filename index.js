@@ -12,6 +12,9 @@ const passport = require('./config/passport');
 const database = require('./config/database')
 database.connect();
 
+// AQI Sync Service
+const aqiSyncService = require('./services/aqiSyncService');
+
 // Route
 const clientRoutes = require('./routers/client/index.route');
 const adminRoutes = require('./routers/admin/index.route');
@@ -72,4 +75,17 @@ app.use((req, res) => {
     });
 });
 
-app.listen(port, () => console.log(`http://localhost:${port}`));
+app.listen(port, async () => {
+    console.log(`http://localhost:${port}`);
+    
+    // Khởi tạo: Sync 72h dữ liệu
+    await aqiSyncService.initialSync();
+    
+    // Tự động sync realtime mỗi phút
+    const syncInterval = parseInt(process.env.SYNC_INTERVAL_MINUTES) || 1;
+    console.log(`⏰ Auto-sync enabled: Every ${syncInterval} minute(s)\n`);
+    
+    setInterval(async () => {
+        await aqiSyncService.syncRealtimeData();
+    }, syncInterval * 60 * 1000);
+});
