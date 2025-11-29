@@ -15,9 +15,9 @@ module.exports.index = async (req, res) => {
             ws: latestCity.current?.weather?.ws
         } : null;
 
-        res.render('client/pages/home/index', { title: null, reading });
+        res.render('client/pages/home/index', { title: 'Eco Track - Home', reading });
     } catch (e) {
-        res.render('client/pages/home/index', { title: null, reading: null });
+        res.render('client/pages/home/index', { title: 'Eco Track - Home', reading: null });
     }
 }
 // [GET] /about

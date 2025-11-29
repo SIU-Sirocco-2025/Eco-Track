@@ -27,199 +27,170 @@
 
 ## 📋 Tổng Quan
 
-**Eco-Track** là dự án mã nguồn mở của đội **SIU_Sirocco (SIU)** nhằm thu thập, chuẩn hoá và lưu trữ dữ liệu **chỉ số ô nhiễm không khí (AQI)** và **thông tin thời tiết** theo quận/huyện tại TP. Hồ Chí Minh.  
-Dữ liệu được lấy từ **AirVisual API** và **OpenAQ**, lưu vào **MongoDB** để phân tích, trực quan hoá và dự đoán.
+Eco-Track thu thập, chuẩn hoá và lưu trữ dữ liệu chỉ số ô nhiễm không khí (AQI) và thông tin thời tiết theo quận/huyện tại TP. Hồ Chí Minh.  
+Dữ liệu thời gian thực được lấy từ OpenAQ API v3 và lưu vào MongoDB để phân tích, trực quan hoá và dự đoán.
 
 Hệ thống cho phép:
 - Hiển thị dashboard trực quan (biểu đồ, bản đồ, heatmap)
 - Truy vấn dữ liệu theo thời gian và khu vực
 - Phân tích xu hướng chất lượng không khí
-- Dự đoán AQI & thời tiết ngắn hạn (1–24 giờ) bằng mô hình ML
+- Dự đoán AQI ngắn hạn (24 giờ) bằng mô hình ML
 
 ---
 
 ## 🏗️ Kiến Trúc & Công Nghệ
 
-### 💻 Công Nghệ Nền Tảng
+- Backend: Node.js + Express
+- Database: MongoDB + Mongoose
+- Views: Pug (client & admin)
+- Frontend libs: Bootstrap 5, Leaflet.js, Chart.js
+- Scheduler: node-cron (thu thập OpenAQ theo giờ)
+- ML: Python (NumPy, Pandas, scikit-learn, PyTorch) gọi qua Node
 
-| 🛠️ Công Nghệ | 🎯 Vai Trò | 🌟 Ghi chú |
-| --- | --- | --- |
-| Node.js & Express.js | Backend, router, controller | Tổ chức theo mô-đun: `controllers/`, `routers/`, `middlewares/` |
-| MongoDB & Mongoose | Lưu trữ dữ liệu thời gian thực | Model trong `models/` (`DistrictX`, `HCMC`, `HCMCAirHour`, `HCMCAirIndex`, …) |
-| Pug (Jade) | View engine cho web client & admin | Thư mục `views/` với layout client/admin riêng |
-| Bootstrap 5, Leaflet.js, Chart.js | UI, bản đồ AQI, biểu đồ | Tài nguyên tĩnh trong `public/client` và `public/admin` |
-| Python (NumPy, Pandas, scikit-learn, PyTorch) | Mô-đun ML/LSTM dự đoán AQI | Script `predict_from_json.py`, chạy qua `helpers/pythonRunner.js` |
-| node-cron | Scheduler / cronjob | `scripts/fetch-and-save.js`, `scripts/fetch-openaq-hours.js` |
-| dotenv | Cấu hình biến môi trường | Dùng trong `config/database.js`, các script thu thập dữ liệu |
+Tham chiếu mã nguồn:
+- Cấu hình DB: [config/database.js](config/database.js)
+- Mô hình dữ liệu AQI: [models/index.js](models/index.js), các model quận như [models/district1.model.js](models/district1.model.js), [models/hcmc.model.js](models/hcmc.model.js)
+- Dữ liệu theo giờ OpenAQ: [models/hcmcAirHour.model.js](models/hcmcAirHour.model.js), [models/hcmcAirindex.model.js](models/hcmcAirindex.model.js)
+- Thu thập OpenAQ: [scripts/fetch-openaq-hours.js](scripts/fetch-openaq-hours.js)
+- Đồng bộ AQI sang các quận: [services/aqiSyncService.js](services/aqiSyncService.js), [scripts/sync-openaq-to-districts.js](scripts/sync-openaq-to-districts.js)
+- API AQI client: [controllers/client/aqi.controller.js](controllers/client/aqi.controller.js)
+- API Dự đoán: [controllers/api/prediction.controller.js](controllers/api/prediction.controller.js), Python runner [helpers/pythonRunner.js](helpers/pythonRunner.js), script ML [predict_from_json.py](predict_from_json.py)
+- Giao diện: Client [views/client/pages/home/index.pug](views/client/pages/home/index.pug), Docs [views/client/pages/docs/index.pug](views/client/pages/docs/index.pug), Admin AQI [views/admin/pages/aqi/index.pug](views/admin/pages/aqi/index.pug), Admin Weather [views/admin/pages/weather/index.pug](views/admin/pages/weather/index.pug)
+
+Lưu ý: Mọi tham chiếu AirVisual đã bị loại bỏ. Script cũ [scripts/fetch-and-save.js](scripts/fetch-and-save.js) không còn được khuyến nghị sử dụng.
 
 ---
 
 ## ✨ Tính Năng Chính
 
-### 1) 📡 Thu Thập Dữ Liệu Thời Gian Thực
-- Lấy dữ liệu từ AirVisual API cho các quận/huyện:
-  - Script: `scripts/fetch-and-save.js`
-  - Map quận ↔ model: `CITY_MAP`
-- Cron job với `node-cron`, cấu hình qua biến môi trường:
-  - `CRON_ENABLED`, `API_DELAY_MS`, `API_MAX_RETRY`, `ALLOW_DB_WRITE`
-- Lưu dữ liệu vào các collection MongoDB theo từng quận và toàn thành phố.
+### 1) 📡 Thu Thập Dữ Liệu (OpenAQ v3)
+- Lấy dữ liệu cảm biến theo giờ của TP.HCM từ OpenAQ
+- Lưu raw giờ vào collection HCMCAirHour
+- Map và chuẩn hoá AQI cho từng quận
 
-### 2) 🗃 Chuẩn Hoá & Lưu Trữ Dữ Liệu
-- Dùng `models/baseReadingSchema.js` để chuẩn hoá:
-  - `current.pollution` (AQI US/CN, chất ô nhiễm chính)
-  - `current.weather` (nhiệt độ, độ ẩm, áp suất, gió, …)
-- Hỗ trợ đọc/ghi dữ liệu lịch sử 72h cho từng quận/huyện.
-- Kết hợp dữ liệu OpenAQ theo giờ qua `scripts/fetch-openaq-hours.js` và model `HCMCAirHour`.
+Script:
+- Thu thập: [scripts/fetch-openaq-hours.js](scripts/fetch-openaq-hours.js)
+- Chuyển đổi/quy đổi AQI: [services/aqiSyncService.js](services/aqiSyncService.js)
+- Kiểm tra dữ liệu mới nhất: [scripts/check-latest-openaq.js](scripts/check-latest-openaq.js)
 
-### 3) 📊 Dashboard & Giao Diện Web
-- Client (`controllers/client`, `views/client`):
-  - Trang chủ, giới thiệu, bản đồ chất lượng không khí, trang tài liệu API
-- Admin (`controllers/admin`, `views/admin`):
-  - Dashboard tổng quan AQI & thời tiết
-  - Quản lý dữ liệu AQI, thời tiết, người dùng (tùy cấu hình)
+### 2) 🗃 Chuẩn Hoá & Lưu Trữ
+- Schema chuẩn: `current.pollution` (AQI US, mainus) và `current.weather` (tp, hu, pr, ws, wd)
+- Model mỗi quận: ví dụ [models/district3.model.js](models/district3.model.js)
+- Thành phố: [models/hcmc.model.js](models/hcmc.model.js)
 
-### 4) 🔮 Dự Đoán AQI & Thời Tiết
-Tích hợp mô-đun AI/ML dự đoán xu hướng AQI và thông số thời tiết cho từng quận/huyện trong 1–24 giờ.
+### 3) 📊 Dashboard & UI
+- Client:
+  - Trang chủ: [views/client/pages/home/index.pug](views/client/pages/home/index.pug)
+  - API docs: [views/client/pages/docs/index.pug](views/client/pages/docs/index.pug)
+  - JS bản đồ/heatmap: [public/client/js/script.js](public/client/js/script.js)
+- Admin:
+  - AQI: [views/admin/pages/aqi/index.pug](views/admin/pages/aqi/index.pug)
+  - Weather: [views/admin/pages/weather/index.pug](views/admin/pages/weather/index.pug)
 
-- Mục tiêu: AQI ngắn hạn, thông số thời tiết, cảnh báo xu hướng
-- Pipeline:
-  1. Tiền xử lý chuỗi dữ liệu 72h gần nhất
-  2. Thuật toán: ARIMA/SARIMA, LSTM, Moving Average
-  3. Trả về dự đoán 1–24 giờ cho từng quận/huyện
-
-Core: `predict_from_json.py` (gọi từ Node qua `helpers/pythonRunner.js`).
+### 4) 🔮 Dự Đoán AQI 24h
+- LSTM parameters (JSON) trong `model_params/`
+- Dự đoán qua Python: [predict_from_json.py](predict_from_json.py)
+- Gọi từ Node: [controllers/api/prediction.controller.js](controllers/api/prediction.controller.js), [helpers/pythonRunner.js](helpers/pythonRunner.js)
+- UI dự báo: [public/client/js/forecast.js](public/client/js/forecast.js)
 
 ---
 
-## 🌐 API Chính
+## 🌐 API
 
-### API Dự Đoán
-- Controller: `controllers/api/prediction.controller.js`
-- Endpoint (ví dụ):
-  - `GET /api/prediction/get-72h-data/:district`
-  - `GET /api/prediction/forecast-24h/:district`
-  - `GET /api/prediction/districts`
-
-### API AQI & Thời Tiết
-- Lịch sử AQI 72h theo quận/huyện
-- Dữ liệu theo khoảng thời gian (from–to)
-- So sánh AQI giữa các khu vực
-- Thống kê, xu hướng, xuất CSV/JSON
-
-API Docs (Pug): `views/client/pages/docs`.
+- AQI Client Endpoints: xem [controllers/client/aqi.controller.js](controllers/client/aqi.controller.js)
+- Prediction Endpoints: xem [controllers/api/prediction.controller.js](controllers/api/prediction.controller.js)
+- API Docs giao diện: [views/client/pages/docs/index.pug](views/client/pages/docs/index.pug)
 
 ---
 
 ## 🔧 Yêu Cầu Hệ Thống
 
-### 🛠 Phần Mềm Bắt Buộc
-- Node.js >= 16.x
-- npm hoặc yarn
-- MongoDB (local hoặc Atlas)
-- Python 3.9+ (khuyến nghị) nếu dùng dự đoán
+- Node.js >= 16.x, npm/yarn
+- MongoDB (local/Atlas)
+- Python 3.9+ nếu dùng dự đoán
 - Git
 
-### ⚙️ Biến Môi Trường (.env)
-Tạo file `.env` tại thư mục gốc, ví dụ:
+Biến môi trường (.env) mẫu:
 ```env
-MONGODB_URL=mongodb://localhost:27017/eco-track
-
-# AirVisual API
-API_BASE=http://api.airvisual.com/v2/city
-API_KEY=YOUR_AIRVISUAL_API_KEY
-STATE=ho chi minh city
-COUNTRY=vietnam
-CRON_ENABLED=1
-API_DELAY_MS=6500
-API_MAX_RETRY=3
-ALLOW_DB_WRITE=1
+PORT=3000
+MONGODB_URL=<your-mongodb-url>
 
 # OpenAQ API
 OPENAQ_API_BASE=https://api.openaq.org/v3
-OPENAQ_API_KEY=YOUR_OPENAQ_API_KEY
+OPENAQ_API_KEY=<your-openaq-api-key>
 OPENAQ_FETCH_INTERVAL=0 * * * *
+SYNC_INTERVAL_MINUTES=30
+
+# Session
+SESSION_SECRET=<your-secret>
+
+# SMTP Email
+EMAIL_USER=<your-email>
+EMAIL_PASS=<your-app-password>
 ```
 
 ---
 
-## 📥 Hướng Dẫn Cài Đặt & Chạy
+## 📥 Cài Đặt & Chạy
 
-### 1) Cài Đặt Dự Án
+### 1) Cài đặt
 ```bash
 git clone https://github.com/<your-username>/Eco-Track.git
 cd Eco-Track
 npm install
-# hoặc
-yarn install
 ```
 
-### 2) Chạy Server
+### 2) Chạy server
 ```bash
 npm run dev
 # hoặc
 npm start
 ```
-Mặc định server: http://localhost:3000
+Mặc định: http://localhost:3000
 
-### 3) Kết Nối Database
-- Đảm bảo MongoDB đang chạy (local hoặc remote)
-- Kiểm tra `MONGODB_URL` trong `.env`
-- Khởi tạo kết nối tại `config/database.js`
+### 3) Kết nối DB
+- Cập nhật `MONGODB_URL` trong `.env`
+- Kết nối tại [config/database.js](config/database.js)
 
-### 4) Chạy Cron Thu Thập Dữ Liệu (tùy chọn)
+### 4) Cron thu thập OpenAQ (tùy chọn)
 ```bash
-node scripts/fetch-and-save.js
 node scripts/fetch-openaq-hours.js
 ```
 
-### 5) Seed Dữ Liệu 72h Cho Prediction (tùy chọn)
+### 5) Seed dữ liệu demo 72h (tùy chọn)
 ```bash
 node scripts/seed-72h-data.js
 ```
 
 ---
 
-## 📁 Cấu Trúc Thư Mục Chính
-- `config/` – Cấu hình database, hệ thống
-- `controllers/` – Logic cho client, admin, api
-- `models/` – Schema Mongoose cho AQI, thời tiết, giờ, index, …
-- `routers/` – Định tuyến cho client, admin, api
-- `views/` – Giao diện Pug (client & admin)
-- `public/` – CSS, JS, hình ảnh, dữ liệu tĩnh
-- `scripts/` – Script cron, seed, debug
-- `helpers/` – Tiện ích chung (Python runner, gửi mail, …)
+## 📁 Cấu Trúc Thư Mục
+- `config/` – Cấu hình hệ thống
+- `controllers/` – Logic client, admin, api
+- `models/` – Schema Mongoose (AQI, thời tiết, giờ, index)
+- `routers/` – Định tuyến
+- `views/` – Giao diện Pug
+- `public/` – Tài nguyên tĩnh
+- `scripts/` – Cron, seed, tiện ích
+- `helpers/` – Python runner, kiểm tra deps
 
 ---
 
-## 🤝 Đóng Góp Cho Dự Án
+## 🤝 Đóng Góp
 ```bash
-# Fork repository
-git clone https://github.com/<your-username>/Eco-Track.git
-cd Eco-Track
-
-# Tạo branch mới
 git checkout -b feat/<ten-tinh-nang>
-
-# Commit thay đổi
-git add .
 git commit -m "feat: <mo-ta-ngan-gon>"
-
-# Push & tạo Pull Request
 git push -u origin feat/<ten-tinh-nang>
 ```
 
 ---
 
-## 🐛 Báo Cáo Lỗi & Góp Ý
-- Tạo issue: https://github.com/<your-org>/Eco-Track/issues  
-- Vui lòng mô tả rõ lỗi, môi trường, log và bước tái hiện.
+## 🐛 Báo Lỗi & Góp Ý
+- Tạo issue: https://github.com/<your-org>/Eco-Track/issues
 
 ---
 
 ## 📄 Giấy Phép
-Dự án được phân phối theo giấy phép GNU General Public License v3.0.  
-Xem chi tiết tại file `LICENSE`.
-
----
+Phân phối theo GNU GPL v3.0. Xem [LICENSE](LICENSE).
 
 © 2025 Eco-Track – Cùng xây dựng bầu không khí trong lành cho TP. Hồ Chí Minh 🌿
