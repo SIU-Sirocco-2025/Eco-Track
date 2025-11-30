@@ -7,7 +7,7 @@ npm install -g pm2
 
 ## Các lệnh quản lý
 
-### 1. Khởi động app (tự động sync realtime)
+### 1. Khởi động app (tự động sync )
 ```bash
 npm run pm2:start
 # hoặc
@@ -57,7 +57,7 @@ pm2 save
 
 Sau khi start bằng PM2, app sẽ:
 - ✅ Tự động sync 72h dữ liệu khi khởi động
-- ✅ Tự động kiểm tra dữ liệu mới mỗi 1 phút
+- ✅ Tự động kiểm tra dữ liệu mới mỗi 30 phút
 - ✅ Tự động sync khi có dữ liệu mới từ OpenAQ
 - ✅ AQI các quận luôn chênh ±12 so với HCMC
 

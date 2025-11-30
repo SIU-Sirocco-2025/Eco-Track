@@ -17,10 +17,12 @@
 
   <br/>
 
-  <a href="http://localhost:3000/api/docs">📖 API Docs</a> •
-  <a href="http://localhost:3000/aqi">🗺 Bản đồ AQI</a> •
-  <a href="/admin/dashboard">📊 Dashboard Admin</a> •
+  <a href="https://ecotrack.asia/api/docs">📖 API Docs</a> •
+  <a href="https://ecotrack.asia/aqi">🗺 Bản đồ AQI</a> •
+  <a href="https://ecotrack.asia/admin/dashboard">📊 Dashboard Admin</a> •
+  <a href="RELEASE_GUIDE.md">🚀 Release Guide</a> •
   <a href="CONTRIBUTING.md">🤝 Đóng Góp</a>
+  <a href="CHANGELOG.md">📝 Changelog</a>
 </div>
 
 ---
@@ -173,6 +175,21 @@ node scripts/seed-72h-data.js
 - `public/` – Tài nguyên tĩnh
 - `scripts/` – Cron, seed, tiện ích
 - `helpers/` – Python runner, kiểm tra deps
+
+---
+
+## 🔖 Release
+- Hướng dẫn chi tiết: xem [RELEASE_GUIDE.md](RELEASE_GUIDE.md)
+- Lịch sử thay đổi: xem [CHANGELOG.md](CHANGELOG.md)
+- Quick steps phát hành:
+  1) Tăng version trong package.json và cập nhật [CHANGELOG.md](CHANGELOG.md)
+  2) Commit: `chore: release vX.Y.Z`
+  3) Tạo tag và đẩy lên Git:
+     ```bash
+     git tag vX.Y.Z
+     git push origin vX.Y.Z
+     ```
+  4) Tạo GitHub Release, đính kèm nội dung từ [CHANGELOG.md](CHANGELOG.md)
 
 ---
 

@@ -48,10 +48,8 @@ Tài liệu hướng dẫn phát hành phiên bản mới theo chuẩn mã ngu�
 - Docs API: [views/client/pages/docs/index.pug](views/client/pages/docs/index.pug), [public/client/css/docs.css](public/client/css/docs.css)
 
 ## 6) Deploy
-- Render (khuyến nghị):
-  - Build script: [render-build.sh](render-build.sh)
-  - Config: [render.yaml](render.yaml), [ecosystem.config.js](ecosystem.config.js)
-- PM2 (máy chủ riêng):
+- Khuyến nghị tự host trên máy chủ riêng hoặc sử dụng các dịch vụ cloud trả phí (AWS, Azure, GCP, DigitalOcean, v.v.) để đảm bảo hiệu năng và bảo mật cho mô hình AI.
+- Sử dụng PM2 để quản lý tiến trình Node.js:
   - Xem [PM2_GUIDE.md](PM2_GUIDE.md)
   - Start/Restart/Logs theo hướng dẫn
 - Môi trường:

@@ -22,7 +22,7 @@ block main
           +missionCard(
             'cloud-sun',
             'Thu thập dữ liệu',
-            'Cập nhật liên tục chỉ số AQI từ các trạm quan trắc trên toàn TP. Hồ Chí Minh thông qua AirVisual API'
+            'Cập nhật liên tục chỉ số AQI từ các trạm quan trắc OpenAQ theo giờ cho TP. Hồ Chí Minh'
           )
           +missionCard(
             'database',
@@ -44,8 +44,8 @@ block main
       .row.g-4
         +featureItem(
           'clock-history',
-          'Cập nhật Real-time',
-          'Dữ liệu được thu thập và cập nhật liên tục mỗi 10 phút'
+          'Cập nhật Nhanh chóng',
+          'Dữ liệu được thu thập và cập nhật liên tục mỗi tiếng'
         )
         +featureItem(
           'map',
@@ -82,7 +82,7 @@ block main
       +techCard(
         'cloud',
         'Data & AI',
-        ['AirVisual API', 'PyTorch (LSTM Model)', 'Pandas & NumPy', 'Scikit-learn']
+        ['OpenAQ API', 'PyTorch (LSTM Model)', 'Pandas & NumPy', 'Scikit-learn']
       )
 
   // Team Section
@@ -115,7 +115,7 @@ block main
       +licenseCard(
         'Giấy phép & Bản quyền',
         'GNU GPL v3.0',
-        'Bạn có thể tự do sử dụng, chỉnh sửa và phân phối mã nguồn này theo điều khoản của GPL v3.0',
+        'Phần mềm được phát hành theo GPL v3.0 và KHÔNG CÓ BẤT KỲ BẢO HÀNH NÀO (NO WARRANTY). Vui lòng xem LICENSE để biết chi tiết.',
         'https://www.gnu.org/licenses/gpl-3.0.html'
       )
 
