@@ -9,105 +9,56 @@
 const NGSI_LD_CONTEXT = require('../config/ngsi-ld-context');
 
 /**
- * Chuyển đổi AQI reading từ MongoDB model sang NGSI-LD entity
+ * Chuyển đổi AQI reading sang FIWARE AirQualityObserved + SOSA
  */
 function toNGSILD(reading, districtKey) {
-  if (!reading || !reading.current) {
-    return null;
-  }
+  if (!reading) return null;
 
-  const { pollution, weather } = reading.current;
-  const timestamp = pollution.ts || new Date().toISOString();
-  
-  // Tạo unique ID theo chuẩn URN NGSI-LD
-  const entityId = `urn:ngsi-ld:AQIReading:${districtKey}:${new Date(timestamp).getTime()}`;
+  const timestamp = reading?.current?.pollution?.ts
+    ? new Date(reading.current.pollution.ts).toISOString()
+    : new Date().toISOString();
 
-  return {
-    "@context": "https://ecotrack.asia/context/v1",
+  const aqi = reading?.current?.pollution?.aqius ?? null;
+  const coords = reading?.location?.coordinates || reading?.coordinates || [106.7, 10.78];
+
+  const entityId = `urn:ngsi-ld:AirQualityObserved:${districtKey}`;
+  const entity = {
+    "@context": NGSI_LD_CONTEXT["@context"],
     "id": entityId,
-    "type": "AQIReading",
-    
-    // AQI properties
-    "aqius": {
-      "type": "Property",
-      "value": pollution.aqius || 0,
-      "observedAt": timestamp
-    },
-    "aqicn": {
-      "type": "Property",
-      "value": pollution.aqicn || 0,
-      "observedAt": timestamp
-    },
-    "mainus": {
-      "type": "Property",
-      "value": pollution.mainus || "unknown",
-      "observedAt": timestamp
-    },
-    "maincn": {
-      "type": "Property",
-      "value": pollution.maincn || "unknown",
-      "observedAt": timestamp
-    },
-    
-    // Weather properties
-    "temperature": {
-      "type": "Property",
-      "value": weather?.tp || 0,
-      "unitCode": "CEL",
-      "observedAt": timestamp
-    },
-    "humidity": {
-      "type": "Property",
-      "value": weather?.hu || 0,
-      "unitCode": "P1",
-      "observedAt": timestamp
-    },
-    "pressure": {
-      "type": "Property",
-      "value": weather?.pr || 0,
-      "unitCode": "A97",
-      "observedAt": timestamp
-    },
-    "windSpeed": {
-      "type": "Property",
-      "value": weather?.ws || 0,
-      "unitCode": "MTS",
-      "observedAt": timestamp
-    },
-    
-    // Location (GeoProperty)
+    "type": "AirQualityObserved",
+
+    // FIWARE core
+    "dateObserved": { "type": "Property", "value": timestamp },
+    "airQualityIndex": { "type": "Property", "value": aqi },
+
+    // Pollutants (thêm nếu có trong reading)
+    ...(reading.current?.pollution?.pm25 != null ? { "pm25": { "type": "Property", "value": reading.current.pollution.pm25 } } : {}),
+    ...(reading.current?.pollution?.pm10 != null ? { "pm10": { "type": "Property", "value": reading.current.pollution.pm10 } } : {}),
+    ...(reading.current?.pollution?.o3   != null ? { "o3":   { "type": "Property", "value": reading.current.pollution.o3 } } : {}),
+    ...(reading.current?.pollution?.no2  != null ? { "no2":  { "type": "Property", "value": reading.current.pollution.no2 } } : {}),
+    ...(reading.current?.pollution?.so2  != null ? { "so2":  { "type": "Property", "value": reading.current.pollution.so2 } } : {}),
+    ...(reading.current?.pollution?.co   != null ? { "co":   { "type": "Property", "value": reading.current.pollution.co } } : {}),
+
+    // Vị trí
     "location": {
       "type": "GeoProperty",
-      "value": {
-        "type": "Point",
-        "coordinates": reading.location?.coordinates || [0, 0]
-      }
+      "value": { "type": "Point", "coordinates": coords }
     },
-    
-    // District info
-    "city": {
-      "type": "Property",
-      "value": reading.city || "Unknown"
-    },
-    "state": {
-      "type": "Property",
-      "value": reading.state || "Unknown"
-    },
-    "country": {
-      "type": "Property",
-      "value": reading.country || "Vietnam"
-    },
-    
-    // Timestamps
-    "dateCreated": {
-      "type": "Property",
-      "value": timestamp
-    },
-    "dateModified": {
-      "type": "Property",
-      "value": timestamp
+
+    // Hành chính
+    "city":   { "type": "Property", "value": reading.city || "Ho Chi Minh City" },
+    "state":  { "type": "Property", "value": reading.state || "Ho Chi Minh City" },
+    "country":{ "type": "Property", "value": reading.country || "Vietnam" },
+
+    // SOSA links
+    "observedProperty": { "type": "Property", "value": "Air Quality" },
+    "hasFeatureOfInterest": {
+      "type": "Relationship",
+      "object": `urn:ngsi-ld:District:${districtKey}`
     }
   };
+
+  return entity;
 }
 
 /**

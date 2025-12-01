@@ -18,67 +18,51 @@ const NGSI_LD_CONTEXT = {
     "ecotrack": "https://ecotrack.asia/entities/",
     "schema": "https://schema.org/",
     "geo": "http://www.w3.org/2003/01/geo/wgs84_pos#",
-    
-    // AQI Reading properties
-    "AQIReading": "ecotrack:AQIReading",
-    "aqius": {
-      "@id": "ecotrack:aqius",
-      "@type": "ngsi-ld:Property"
-    },
-    "aqicn": {
-      "@id": "ecotrack:aqicn",
-      "@type": "ngsi-ld:Property"
-    },
-    "mainus": {
-      "@id": "ecotrack:mainus",
-      "@type": "ngsi-ld:Property"
-    },
-    "maincn": {
-      "@id": "ecotrack:maincn",
-      "@type": "ngsi-ld:Property"
-    },
-    "timestamp": {
-      "@id": "schema:dateModified",
-      "@type": "ngsi-ld:Property"
-    },
-    
-    // Weather properties
-    "temperature": {
-      "@id": "ecotrack:temperature",
-      "@type": "ngsi-ld:Property"
-    },
-    "humidity": {
-      "@id": "ecotrack:humidity",
-      "@type": "ngsi-ld:Property"
-    },
-    "pressure": {
-      "@id": "ecotrack:pressure",
-      "@type": "ngsi-ld:Property"
-    },
-    "windSpeed": {
-      "@id": "ecotrack:windSpeed",
-      "@type": "ngsi-ld:Property"
-    },
-    
+
+    // SOSA/SSN namespaces
+    "sosa": "http://www.w3.org/ns/sosa/",
+    "ssn": "http://www.w3.org/ns/ssn/",
+    "Observation": "sosa:Observation",
+    "ObservedProperty": "sosa:ObservedProperty",
+    "Sensor": "sosa:Sensor",
+    "hasFeatureOfInterest": "sosa:hasFeatureOfInterest",
+    "observedProperty": "sosa:observedProperty",
+    "madeBySensor": "sosa:madeBySensor",
+
+    // FIWARE AirQualityObserved type
+    "AirQualityObserved": "https://schema.fiware.org/Weather/AirQualityObserved",
+
+    // Core props (FIWARE)
+    "dateObserved": { "@id": "schema:Date", "@type": "ngsi-ld:Property" },
+    "airQualityIndex": { "@id": "ecotrack:airQualityIndex", "@type": "ngsi-ld:Property" },
+
+    // Pollutants
+    "pm25": { "@id": "ecotrack:pm25", "@type": "ngsi-ld:Property" },
+    "pm10": { "@id": "ecotrack:pm10", "@type": "ngsi-ld:Property" },
+    "o3":   { "@id": "ecotrack:o3",   "@type": "ngsi-ld:Property" },
+    "no2":  { "@id": "ecotrack:no2",  "@type": "ngsi-ld:Property" },
+    "so2":  { "@id": "ecotrack:so2",  "@type": "ngsi-ld:Property" },
+    "co":   { "@id": "ecotrack:co",   "@type": "ngsi-ld:Property" },
+
     // Location
-    "location": {
-      "@id": "ngsi-ld:location",
-      "@type": "ngsi-ld:GeoProperty"
-    },
-    
-    // District info
-    "city": {
-      "@id": "schema:addressLocality",
-      "@type": "ngsi-ld:Property"
-    },
-    "state": {
-      "@id": "schema:addressRegion",
-      "@type": "ngsi-ld:Property"
-    },
-    "country": {
-      "@id": "schema:addressCountry",
-      "@type": "ngsi-ld:Property"
-    }
+    "location": { "@id": "ngsi-ld:location", "@type": "ngsi-ld:GeoProperty" },
+    "city":     { "@id": "schema:addressLocality", "@type": "ngsi-ld:Property" },
+    "state":    { "@id": "schema:addressRegion",   "@type": "ngsi-ld:Property" },
+    "country":  { "@id": "schema:addressCountry",  "@type": "ngsi-ld:Property" },
+
+    // Legacy AQIReading (giữ để tương thích cũ)
+    "AQIReading": "ecotrack:AQIReading",
+    "aqius": { "@id": "ecotrack:aqius", "@type": "ngsi-ld:Property" },
+    "aqicn": { "@id": "ecotrack:aqicn", "@type": "ngsi-ld:Property" },
+    "mainus": { "@id": "ecotrack:mainus", "@type": "ngsi-ld:Property" },
+    "maincn": { "@id": "ecotrack:maincn", "@type": "ngsi-ld:Property" },
+    "timestamp": { "@id": "schema:dateModified", "@type": "ngsi-ld:Property" },
+
+    // Weather (giữ)
+    "temperature": { "@id": "ecotrack:temperature", "@type": "ngsi-ld:Property" },
+    "humidity":    { "@id": "ecotrack:humidity",    "@type": "ngsi-ld:Property" },
+    "pressure":    { "@id": "ecotrack:pressure",    "@type": "ngsi-ld:Property" },
+    "windSpeed":   { "@id": "ecotrack:windSpeed",   "@type": "ngsi-ld:Property" }
   }
 };
 
