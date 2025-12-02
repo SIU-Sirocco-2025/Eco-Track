@@ -1,5 +1,31 @@
 # CHANGELOG
+## [v1.1.0](https://github.com/SIU-Sirocco-2025/Eco-Track/releases/tag/v1.1.0) - 2025-12-01
 
+### Added
+- Chuẩn hoá đầy đủ NGSI-LD / JSON-LD / SOSA / SSN cho AQI (context mở rộng: [config/ngsi-ld-context.js](config/ngsi-ld-context.js), file tĩnh: [public/context.jsonld](public/context.jsonld)).
+- Bổ sung mô tả FIWARE AirQualityObserved & Prediction trong tài liệu ([README.md](README.md), [views/client/pages/docs/index.pug](views/client/pages/docs/index.pug)).
+- Script kiểm thử NGSI-LD tự động ([scripts/test-ngsi-ld.js](scripts/test-ngsi-ld.js)).
+- Ví dụ dự đoán AQI ở định dạng NGSI-LD (hàm [`helpers.ngsiLdConverter.predictionToNGSILD`](helpers/ngsiLdConverter.js)).
+- Mapping rõ ràng REST city keys ↔ NGSI-LD district keys trong API Docs ([views/client/pages/docs/index.pug](views/client/pages/docs/index.pug)).
+
+### Changed
+- Cập nhật phiên bản API hiển thị v1.1 trong docs ([views/client/pages/docs/index.pug](views/client/pages/docs/index.pug)).
+- Đồng bộ hoá viết hoa chuẩn: NGSI-LD, JSON-LD, FIWARE, SOSA, SSN ([README.md](README.md), [views/client/pages/docs/index.pug](views/client/pages/docs/index.pug)).
+- Hoàn thiện mô tả NGSI-LD API trong README (loại bỏ heading trùng “🌐 API”) ([README.md](README.md)).
+- Chuẩn hoá Accept header trong ví dụ NGSI-LD (`application/ld+json`) ([views/client/pages/docs/index.pug](views/client/pages/docs/index.pug)).
+- Rà soát ID thực thể AirQualityObserved; (tuỳ chọn) chuẩn hoá định dạng có hoặc không timestamp (cần cập nhật nếu đổi) ([helpers/ngsiLdConverter.js](helpers/ngsiLdConverter.js), [controllers/api/aqiNgsiLd.controller.js](controllers/api/aqiNgsiLd.controller.js)).
+
+### Fixed
+- Sai đường dẫn context trong README (v1.jsonld → [public/context.jsonld](public/context.jsonld)).
+- Không nhất quán cityKey/districtKey (quan1 vs district1) – bổ sung giải thích và ví dụ chuẩn ([views/client/pages/docs/index.pug](views/client/pages/docs/index.pug)).
+- Chính tả “tương thác” → “tương tác” trong phần mô tả NGSI-LD ([README.md](README.md)).
+- Đồng bộ repository metadata (repository/bugs/homepage) bỏ placeholder `your-org` ([package.json](package.json)).
+- Thiếu nhãn Accept ở một số ví dụ NGSI-LD ([views/client/pages/docs/index.pug](views/client/pages/docs/index.pug)).
+
+### Deprecated (Informational)
+- Định dạng entity ID không có timestamp sẽ sớm thay bằng dạng có epoch suffix cho truy vấn temporal chi tiết (xem kế hoạch nâng cấp trong v1.2.0).
+
+---
 ## [v1.0.0](https://github.com/SIU-Sirocco-2025/Eco-Track/releases/tag/v1.0.0) - 2025-11-30
 
 ### Added

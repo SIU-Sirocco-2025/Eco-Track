@@ -90,14 +90,12 @@ Script:
   - Weather: [views/admin/pages/weather/index.pug](views/admin/pages/weather/index.pug)
 
 ### 4) 🔮 Dự Đoán AQI 24h
-- LSTM parameters (JSON) trong `model_params/`
+- Tham số LSTM (JSON) trong `model_params/`
 - Dự đoán qua Python: [predict_from_json.py](predict_from_json.py)
 - Gọi từ Node: [controllers/api/prediction.controller.js](controllers/api/prediction.controller.js), [helpers/pythonRunner.js](helpers/pythonRunner.js)
 - UI dự báo: [public/client/js/forecast.js](public/client/js/forecast.js)
 
 ---
-
-## 🌐 API
 
 ## 🌐 API
 
@@ -107,15 +105,15 @@ Script:
 - API Docs giao diện: [views/client/pages/docs/index.pug](views/client/pages/docs/index.pug)
 
 ### NGSI-LD API
-Eco-Track tuân thủ chuẩn NGSI-LD (ETSI GS CIM 009) cho tương thác Smart City:
+Eco-Track tuân thủ chuẩn NGSI-LD (ETSI GS CIM 009) cho tương tác Smart City:
 
-- **Context**: `GET /api/ngsi-ld/context`
-- **Query Entities**: `GET /api/ngsi-ld/entities/:district`
-- **Temporal Query**: `GET /api/ngsi-ld/entities/:district/temporal`
-- **All Entities**: `GET /api/ngsi-ld/entities`
-- **Predictions**: `POST /api/ngsi-ld/predictions/:district`
+- Context: `GET /api/ngsi-ld/context`
+- Query Entities: `GET /api/ngsi-ld/entities/:district`
+- Temporal Query: `GET /api/ngsi-ld/entities/:district/temporal`
+- All Entities: `GET /api/ngsi-ld/entities`
+- Predictions: `POST /api/ngsi-ld/predictions/:district`
 
-Context definition: [public/context/v1.jsonld](public/context/v1.jsonld)
+Context definition: [public/context.jsonld](public/context.jsonld) hoặc endpoint `/api/ngsi-ld/context`
 
 #### Ví dụ sử dụng NGSI-LD:
 
@@ -125,13 +123,21 @@ curl -H "Accept: application/ld+json" \
   https://ecotrack.asia/api/ngsi-ld/entities/district1
 
 # Truy vấn temporal (24h gần nhất)
-curl "https://ecotrack.asia/api/ngsi-ld/entities/district1/temporal?limit=24"
+curl -H "Accept: application/ld+json" \
+  "https://ecotrack.asia/api/ngsi-ld/entities/district1/temporal?limit=24"
 ```
 
-Tích hợp với FIWARE Orion-LD Context Broker:
-- Cấu hình trong `.env`: `FIWARE_BROKER_URL`, `FIWARE_USE_ORIONLD=true`
-- Service: [services/orionLdSync.service.js](services/orionLdSync.service.js)
+## NGSI-LD & FIWARE Integration
+- Chuẩn: NGSI-LD / JSON-LD / FIWARE AirQualityObserved / SOSA / SSN
+- Context: động `/api/ngsi-ld/context` và tĩnh [public/context.jsonld](public/context.jsonld)
 
+### AirQualityObserved (FIWARE)
+- Entity type: AirQualityObserved
+- ID dạng: `urn:ngsi-ld:AirQualityObserved:<districtKey>[:<epoch>]`
+- Thuộc tính: `aqiUS`, `dateObserved`, `location`, `mainPollutant`
+
+### Prediction
+- Hàm chuyển đổi: [`helpers.ngsiLdConverter.predictionToNGSILD`](helpers/ngsiLdConverter.js)
 
 ---
 
@@ -167,7 +173,7 @@ EMAIL_PASS=<your-app-password>
 
 ### 1) Cài đặt
 ```bash
-git clone https://github.com/<your-username>/Eco-Track.git
+git clone https://github.com/SIU-Sirocco-2025/Eco-Track.git
 cd Eco-Track
 npm install
 ```
@@ -193,6 +199,12 @@ node scripts/fetch-openaq-hours.js
 ```bash
 node scripts/seed-72h-data.js
 ```
+
+### 6) Kiểm tra/cài đặt phụ thuộc Python cho dự đoán (tùy chọn)
+```bash
+node scripts/check-python-deps.js
+```
+- Script sử dụng: [`helpers.checkPythonDeps.ensurePythonDependencies`](helpers/checkPythonDeps.js)
 
 ---
 
@@ -233,7 +245,7 @@ git push -u origin feat/<ten-tinh-nang>
 ---
 
 ## 🐛 Báo Lỗi & Góp Ý
-- Tạo issue: https://github.com/<your-org>/Eco-Track/issues
+- Tạo issue: https://github.com/SIU-Sirocco-2025/Eco-Track/issues
 
 ---
 

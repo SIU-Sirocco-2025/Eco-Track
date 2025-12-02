@@ -93,7 +93,7 @@ html(lang='vi')
               i.fas.fa-info-circle
               div
                 strong API Version: 
-                | v1.0
+                | v1.1
                 br
                 strong Base URL: 
                 code http://localhost:3000
@@ -295,13 +295,25 @@ html(lang='vi')
             h2 
               i.fas.fa-link
               |  Context Definition
-            
+             
             .endpoint-info
               span.http-method.get GET
               code.endpoint-url /api/ngsi-ld/context
-            
-            p Lấy @context định nghĩa cho tất cả entities của Eco-Track.
-            
+             
+            p
+              | Lấy @context định nghĩa cho tất cả entities của Eco-Track. Ngoài endpoint động ở 
+              code /api/ngsi-ld/context
+              | , hệ thống cũng phục vụ context tĩnh tại 
+              code /context
+              |  (xem 
+              a(href='/public/context.jsonld') public/context.jsonld
+              | ). Cấu hình prefix API xem 
+              a(href='/config/system.js') 
+                | `
+                | config.system.prefixAPI
+                | `
+              | .
+          
             h4 Response Example
             .code-block
               .code-header
@@ -340,15 +352,15 @@ html(lang='vi')
             h2 
               i.fas.fa-database
               |  Query Entities
-            
+             
             .endpoint-info
               span.http-method.get GET
               code.endpoint-url /api/ngsi-ld/entities/:district
-            
+             
             p Lấy entity mới nhất theo chuẩn NGSI-LD cho một quận (type: 
               code AirQualityObserved
               | ).
-            
+             
             h4 Request Example
             .code-block
               .code-header
@@ -359,7 +371,7 @@ html(lang='vi')
                 code.language-bash.
                   curl -X GET "https://ecotrack.asia/api/ngsi-ld/entities/district1" \
                     -H "Accept: application/ld+json"
-            
+             
             h4 Response Example
             .code-block
               .code-header
@@ -369,7 +381,7 @@ html(lang='vi')
               pre
                 code.language-json.
                   {
-                    "@context": "https://ecotrack.asia/context/v1",
+                    "@context": "https://ecotrack.asia/context",
                     "id": "urn:ngsi-ld:AirQualityObserved:district1:1735574400000",
                     "type": "AirQualityObserved",
                     "dateObserved": {
