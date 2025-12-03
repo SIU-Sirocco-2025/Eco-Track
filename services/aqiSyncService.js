@@ -9,6 +9,16 @@
 const HCMCAirHour = require('../models/hcmcAirHour.model');
 const models = require('../models');
 
+const USE_ORION = String(process.env.USE_ORION || '').toLowerCase() === 'true';
+let orionSync = null;
+if (USE_ORION) {
+  try {
+    orionSync = require('../services/orionSync'); // ensure this file exists
+  } catch (e) {
+    console.warn('[Orion-LD] USE_ORION=true but services/orionSync.js not found:', e.message);
+  }
+}
+
 // Helper function để map city name sang district key
 function getDistrictKey(cityName) {
   const mapping = {
@@ -35,7 +45,7 @@ function getDistrictKey(cityName) {
 // Hàm tính AQI US từ PM2.5
 function calculatePM25AQI(pm25) {
   if (pm25 == null || pm25 < 0) return null;
-  
+
   const breakpoints = [
     { cLow: 0.0, cHigh: 12.0, iLow: 0, iHigh: 50 },
     { cLow: 12.1, cHigh: 35.4, iLow: 51, iHigh: 100 },
@@ -51,14 +61,14 @@ function calculatePM25AQI(pm25) {
       return Math.round(((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (pm25 - bp.cLow) + bp.iLow);
     }
   }
-  
+
   return pm25 > 500.4 ? 500 : null;
 }
 
 // Hàm tính AQI từ PM10
 function calculatePM10AQI(pm10) {
   if (pm10 == null || pm10 < 0) return null;
-  
+
   const breakpoints = [
     { cLow: 0, cHigh: 54, iLow: 0, iHigh: 50 },
     { cLow: 55, cHigh: 154, iLow: 51, iHigh: 100 },
@@ -74,14 +84,14 @@ function calculatePM10AQI(pm10) {
       return Math.round(((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (pm10 - bp.cLow) + bp.iLow);
     }
   }
-  
+
   return pm10 > 604 ? 500 : null;
 }
 
 // Hàm tính AQI từ O3
 function calculateO3AQI(o3) {
   if (o3 == null || o3 < 0) return null;
-  
+
   const breakpoints = [
     { cLow: 0, cHigh: 54, iLow: 0, iHigh: 50 },
     { cLow: 55, cHigh: 70, iLow: 51, iHigh: 100 },
@@ -95,14 +105,14 @@ function calculateO3AQI(o3) {
       return Math.round(((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (o3 - bp.cLow) + bp.iLow);
     }
   }
-  
+
   return o3 > 200 ? 300 : null;
 }
 
 // Hàm tính AQI từ NO2
 function calculateNO2AQI(no2) {
   if (no2 == null || no2 < 0) return null;
-  
+
   const breakpoints = [
     { cLow: 0, cHigh: 53, iLow: 0, iHigh: 50 },
     { cLow: 54, cHigh: 100, iLow: 51, iHigh: 100 },
@@ -118,14 +128,14 @@ function calculateNO2AQI(no2) {
       return Math.round(((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (no2 - bp.cLow) + bp.iLow);
     }
   }
-  
+
   return no2 > 2049 ? 500 : null;
 }
 
 // Hàm tính AQI từ SO2
 function calculateSO2AQI(so2) {
   if (so2 == null || so2 < 0) return null;
-  
+
   const breakpoints = [
     { cLow: 0, cHigh: 35, iLow: 0, iHigh: 50 },
     { cLow: 36, cHigh: 75, iLow: 51, iHigh: 100 },
@@ -141,14 +151,14 @@ function calculateSO2AQI(so2) {
       return Math.round(((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (so2 - bp.cLow) + bp.iLow);
     }
   }
-  
+
   return so2 > 1004 ? 500 : null;
 }
 
 // Hàm tính AQI từ CO
 function calculateCOAQI(co) {
   if (co == null || co < 0) return null;
-  
+
   const breakpoints = [
     { cLow: 0, cHigh: 4.4, iLow: 0, iHigh: 50 },
     { cLow: 4.5, cHigh: 9.4, iLow: 51, iHigh: 100 },
@@ -164,14 +174,14 @@ function calculateCOAQI(co) {
       return Math.round(((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (co - bp.cLow) + bp.iLow);
     }
   }
-  
+
   return co > 50.4 ? 500 : null;
 }
 
 // Hàm tính AQI tổng hợp
 function calculateOverallAQI(measurements) {
   const aqiValues = [];
-  
+
   const pollutants = {
     pm25: measurements?.pm25?.value,
     pm10: measurements?.pm10?.value,
@@ -198,7 +208,7 @@ function calculateOverallAQI(measurements) {
   }
 
   if (aqiValues.length === 0) return { aqius: null, mainus: null };
-  
+
   aqiValues.sort((a, b) => b.aqi - a.aqi);
   return {
     aqius: aqiValues[0].aqi,
@@ -209,14 +219,14 @@ function calculateOverallAQI(measurements) {
 // Hàm chuyển đổi sang định dạng district
 function convertToDistrictReading(airHourData, districtInfo, isHCMC = false, hcmcAQI = null) {
   const { aqius, mainus } = calculateOverallAQI(airHourData.measurements);
-  
+
   // Nếu không phải HCMC, random AQI dựa trên AQI của HCMC ±12
   let finalAQI = aqius;
   if (!isHCMC && hcmcAQI != null) {
     const offset = (Math.random() * 2 - 1) * 12; // Random từ -12 đến +12
     finalAQI = Math.round(Math.max(0, hcmcAQI + offset)); // Dựa trên AQI HCMC
   }
-  
+
   const fakeWeather = {
     ts: airHourData.from,
     tp: parseFloat((28 + Math.random() * 5).toFixed(1)),
@@ -290,10 +300,10 @@ async function syncRealtimeData() {
     }
 
     console.log(`\n[Sync] New data detected: ${latestRecord.from.toISOString()}`);
-    
+
     // Tính AQI gốc của HCMC trước
     const { aqius: hcmcAQI } = calculateOverallAQI(latestRecord.measurements);
-    
+
     let successCount = 0;
     let errorCount = 0;
 
@@ -303,14 +313,14 @@ async function syncRealtimeData() {
         // Kiểm tra xem có phải HCMC không
         const isHCMC = district.city === 'Ho Chi Minh City';
         const reading = convertToDistrictReading(latestRecord, district, isHCMC, hcmcAQI);
-        
+
         // Upsert (update nếu có, insert nếu chưa có)
         await district.model.updateOne(
           { 'current.pollution.ts': latestRecord.from },
           { $set: reading },
           { upsert: true }
         );
-        
+
         successCount++;
       } catch (err) {
         console.error(`[Sync] Error saving to ${district.city}:`, err.message);
@@ -341,37 +351,37 @@ async function initialSync() {
     }
 
     console.log(`[Initial Sync] Processing ${airHourRecords.length} records...`);
-    
+
     let totalSaved = 0;
 
     for (const airHour of airHourRecords) {
       // Tính AQI gốc của HCMC cho thời điểm này
       const { aqius: hcmcAQI } = calculateOverallAQI(airHour.measurements);
-      
+
       for (const district of districtsList) {
         try {
           // Kiểm tra xem có phải HCMC không
           const isHCMC = district.city === 'Ho Chi Minh City';
           const reading = convertToDistrictReading(airHour, district, isHCMC, hcmcAQI);
-          
+
           await district.model.updateOne(
             { 'current.pollution.ts': airHour.from },
             { $set: reading },
             { upsert: true }
           );
-          
+
           totalSaved++;
         } catch (err) {
           // Silent error during initial sync
         }
-            if (USE_ORION && latestData) {
-      try {
-        const districtKey = getDistrictKey(district.city);
-        await orionSync.syncAQIReading(latestData, districtKey);
-      } catch (err) {
-        console.error(`[Orion-LD] Failed to sync ${district.city}:`, err.message);
-      }
-    }
+        if (USE_ORION && orionSync && latestData) {
+          try {
+            const districtKey = getDistrictKey(district.city);
+            await orionSync.syncAQIReading(latestData, districtKey);
+          } catch (err) {
+            console.error(`[Orion-LD] Failed to sync ${district.city}:`, err.message);
+          }
+        }
       }
     }
 
