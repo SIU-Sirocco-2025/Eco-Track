@@ -29,7 +29,6 @@
   "dependencies": {
     "@digitalbazaar/http-client": "^4.2.0",
     "axios": "^1.13.2",
-    "body-parser": "^2.2.0",
     "cloudinary": "^2.8.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
