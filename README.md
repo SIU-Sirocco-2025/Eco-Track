@@ -151,60 +151,107 @@ curl -H "Accept: application/ld+json" \
 Biến môi trường (.env) mẫu:
 ```env
 PORT=3000
-MONGODB_URL=<your-mongodb-url>
+BASE_URL=http://localhost:3000
+MONGODB_URL=<your-mongodb-url>  # bắt buộc
 
-# OpenAQ API
+# OpenAQ API (tuỳ chọn nếu chạy cron/sync OpenAQ)
 OPENAQ_API_BASE=https://api.openaq.org/v3
 OPENAQ_API_KEY=<your-openaq-api-key>
-OPENAQ_FETCH_INTERVAL=0 * * * *
-SYNC_INTERVAL_MINUTES=30
+OPENAQ_FETCH_INTERVAL=0 * * * *   # cron: mỗi giờ phút 0
+SYNC_INTERVAL_MINUTES=30          # đồng bộ quận mỗi 30 phút
+
+# NGSI-LD / Orion-LD (tuỳ chọn)
+USE_ORION=false
 
 # Session
 SESSION_SECRET=<your-secret>
 
-# SMTP Email
+# SMTP Email (bắt buộc nếu dùng tính năng OTP/email)
 EMAIL_USER=<your-email>
 EMAIL_PASS=<your-app-password>
+
+# Google OAuth (tùy chọn)
+GOOGLE_CLIENT_ID=<your-google-client-id>
+GOOGLE_CLIENT_SECRET=<your-google-client-secret>
+GOOGLE_CALLBACK_URL=http://localhost:3000/auth/google/callback
 ```
 
 ---
 
 ## 📥 Cài Đặt & Chạy
 
-### 1) Cài đặt
+### 1) Cài đặt dependencies
 ```bash
 git clone https://github.com/SIU-Sirocco-2025/Eco-Track.git
 cd Eco-Track
 npm install
 ```
 
-### 2) Chạy server
-```bash
-npm run dev
-# hoặc
-npm start
-```
-Mặc định: http://localhost:3000
+### 2) Tạo và cấu hình .env
+- Tạo file `.env` từ mẫu bên trên.
+- Bắt buộc cấu hình:
+  - `MONGODB_URL` trỏ tới MongoDB hợp lệ.
+  - `SESSION_SECRET` là chuỗi bí mật bất kỳ.
+- Nếu dùng email OTP, cấu hình `EMAIL_USER` và `EMAIL_PASS`.
 
 ### 3) Kết nối DB
-- Cập nhật `MONGODB_URL` trong `.env`
-- Kết nối tại [config/database.js](config/database.js)
+- Ứng dụng sẽ dùng giá trị `MONGODB_URL` để kết nối tại [config/database.js](config/database.js).
 
-### 4) Cron thu thập OpenAQ (tùy chọn)
+### 4) Chạy server (dev hoặc production)
 ```bash
-node scripts/fetch-openaq-hours.js
+npm run dev   # nodemon, phù hợp phát triển
+# hoặc
+npm start     # production mode
 ```
+- Mặc định: http://localhost:3000
+- Routes chính:
+  - Client AQI: [routers/client/index.route.js](routers/client/index.route.js) → trang [views/client/pages/aqi/index.pug](views/client/pages/aqi/index.pug)
+  - API client: [controllers/client/aqi.controller.js](controllers/client/aqi.controller.js)
+  - API dự đoán: [controllers/api/prediction.controller.js](controllers/api/prediction.controller.js)
+  - Docs UI: [views/client/pages/docs/index.pug](views/client/pages/docs/index.pug) → http://localhost:3000/api/docs
 
-### 5) Seed dữ liệu demo 72h (tùy chọn)
+### 5) Seed dữ liệu demo 72h (tuỳ chọn)
+- Nếu bạn chưa cấu hình cron/không có dữ liệu OpenAQ, seed mẫu để kiểm thử UI/API:
 ```bash
 node scripts/seed-72h-data.js
 ```
+- Script sẽ tạo dữ liệu chuẩn cho các model quận: xem [scripts/seed-72h-data.js](scripts/seed-72h-data.js) và các model trong [models/index.js](models/index.js).
 
-### 6) Kiểm tra/cài đặt phụ thuộc Python cho dự đoán (tùy chọn)
+### 6) Thu thập OpenAQ theo giờ (tuỳ chọn)
+- Dùng khi có `OPENAQ_API_KEY` và muốn dữ liệu thật:
+```bash
+node scripts/fetch-openaq-hours.js
+```
+- Dữ liệu giờ lưu vào [`HCMCAirHour`](models/hcmcAirHour.model.js). Sau đó đồng bộ/bản đồ hoá sang các quận qua dịch vụ:
+  - Đồng bộ tự động trong service: [services/aqiSyncService.js](services/aqiSyncService.js) hoặc script tiện ích [scripts/sync-openaq-to-districts.js](scripts/sync-openaq-to-districts.js).
+
+### 7) Kiểm tra dữ liệu OpenAQ gần nhất (tuỳ chọn)
+```bash
+node scripts/check-latest-openaq.js
+```
+- In 10 bản ghi mới nhất của [`HCMCAirHour`](models/hcmcAirHour.model.js) để kiểm chứng.
+
+### 8) Dự đoán AQI 24h (tuỳ chọn)
+- Cài đặt/kiểm tra phụ thuộc Python:
 ```bash
 node scripts/check-python-deps.js
 ```
-- Script sử dụng: [`helpers.checkPythonDeps.ensurePythonDependencies`](helpers/checkPythonDeps.js)
+- Script dùng [`helpers.checkPythonDeps.ensurePythonDependencies`](helpers/checkPythonDeps.js) để tự động kiểm tra torch/pandas/numpy/sklearn và cài bằng pip nếu thiếu.
+- API dự đoán gọi Python runner: [`helpers.pythonRunner.runPythonScriptWithStdin`](helpers/pythonRunner.js) chạy [`predict_from_json.py`](predict_from_json.py).
+- Tham số mô hình LSTM: thư mục [model_params/](model_params/), ánh xạ trong [`controllers/api/prediction.controller.js`](controllers/api/prediction.controller.js).
+
+### 9) NGSI-LD API (tuỳ chọn)
+- Context: `GET /api/ngsi-ld/context` và file tĩnh [public/context.jsonld](public/context.jsonld)
+- Thực thể và chuyển đổi: [`helpers.ngsiLdConverter`](helpers/ngsiLdConverter.js), controllers: [controllers/api/aqiNgsiLd.controller.js](controllers/api/aqiNgsiLd.controller.js)
+
+### 10) Chạy bằng PM2 (production khuyến nghị)
+```bash
+npm install -g pm2
+pm2 start ecosystem.config.js
+pm2 logs
+pm2 restart ecosystem.config.js
+```
+- Xem hướng dẫn chi tiết: [PM2_GUIDE.md](PM2_GUIDE.md).
 
 ---
 
@@ -216,7 +263,7 @@ node scripts/check-python-deps.js
 - `views/` – Giao diện Pug
 - `public/` – Tài nguyên tĩnh
 - `scripts/` – Cron, seed, tiện ích
-- `helpers/` – Python runner, kiểm tra deps
+- `helpers/` – Python runner, kiểm tra deps   
 
 ---
 

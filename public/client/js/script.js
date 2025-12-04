@@ -213,12 +213,26 @@
 
     // Mapping chuẩn
     const SENSOR_META = {
-      pm1: { display: 'PM1.0', unit: 'µg/m³', icon: 'bi-bullseye', critical: true },
-      pm25: { display: 'PM2.5', unit: 'µg/m³', icon: 'bi-cloud-haze2', critical: true },
+      pm1: { display: 'PM1.0', unit: 'µg/m³', icon: 'bi-bullseye' },
+      pm25: { display: 'PM2.5', unit: 'µg/m³', icon: 'bi-cloud-haze2' },
       relativehumidity: { display: 'Độ ẩm', unit: '%', icon: 'bi-droplet-half' },
       temperature: { display: 'Nhiệt độ', unit: '°C', icon: 'bi-thermometer-half' },
       um003: { display: 'PM0.3', unit: 'particles/cm³', icon: 'bi-stars' }
     };
+
+    // Đánh giá cảnh báo theo ngưỡng
+    function isCritical(key, value) {
+      if (typeof value !== 'number') return false;
+      switch (key) {
+        case 'pm25': return value >= 35;            // WHO 24h guideline ~35 µg/m³
+        case 'pm1': return value >= 35;            // dùng cùng ngưỡng cảnh báo gần đúng
+        case 'temperature': return value <= 15 || value >= 35; // quá lạnh/nóng
+        case 'relativehumidity': return value <= 20 || value >= 85; // quá khô/ẩm
+        case 'um003': return value >= 1000;         // ví dụ: hạt quá cao (tuỳ chỉnh)
+        default: return false;
+      }
+    }
+
     const sensorMeta = k => SENSOR_META[k] || { display: k, unit: '', icon: 'bi-info-circle' };
     const orderWeight = k => ({ pm1: 1, pm25: 2, relativehumidity: 3, temperature: 4, um003: 5 }[k] || 99);
 
@@ -226,7 +240,7 @@
       .sort((a, b) => orderWeight(a.key) - orderWeight(b.key))
       .map(m => {
         const meta = sensorMeta(m.key);
-        const warn = meta.critical;
+        const warn = isCritical(m.key, m.value);
         const displayValue = typeof m.value === 'number' ? m.value.toFixed(1) : (m.value ?? '--');
         return `
         <tr class="${warn ? 'table-warning' : ''}">
@@ -261,7 +275,7 @@
         <div class="row g-3 mb-3 city-hour-metrics">
           ${(data.measurements || []).sort((a, b) => orderWeight(a.key) - orderWeight(b.key)).map(m => {
       const meta = sensorMeta(m.key);
-      const cls = meta.critical ? 'metric-item danger' : 'metric-item';
+      const cls = isCritical(m.key, m.value) ? 'metric-item danger' : 'metric-item';
       return `
               <div class="col-6 col-md-4 col-lg-3">
                 <div class="${cls}">
@@ -695,7 +709,7 @@ if (showAlert) {
 const togglePassword = document.getElementById('togglePassword');
 const passwordField = document.getElementById('password');
 if (togglePassword && passwordField) {
-    togglePassword.addEventListener('click', function () {
+  togglePassword.addEventListener('click', function () {
     const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
     passwordField.setAttribute('type', type);
 
