@@ -83,7 +83,7 @@ function predictionToNGSILD(prediction, districtKey) {
     
     "predictedAQI": {
       "type": "Property",
-      "value": Math.round(prediction.aqi),
+      "value": Math.round(prediction.aqius),
       "observedAt": new Date().toISOString()
     },
     "predictionHour": {

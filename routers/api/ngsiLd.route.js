@@ -24,6 +24,6 @@ router.get('/entities/:district', aqiController.getEntity);
 router.get('/entities/:district/temporal', aqiController.getTemporalEntity);
 
 // Predictions in NGSI-LD format
-router.post('/predictions/:district', predictionController.forecast24hNGSILD);
+router.get('/predictions/:district', predictionController.forecast24hNGSILD);
 
 module.exports = router;
