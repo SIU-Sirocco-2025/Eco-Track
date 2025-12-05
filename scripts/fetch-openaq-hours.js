@@ -117,8 +117,8 @@ function aggregateByHour(allRecords) {
 async function getLastHourStart() {
   const last = await HCMCAirHour.findOne().sort({ from: -1 }).lean();
   if (last) return last.from; // Date UTC
-  // Nếu chưa có dữ liệu: lùi 6 giờ để backfill nhẹ
-  return new Date(Date.now() - 6 * 60 * 60 * 1000);
+  // Nếu chưa có dữ liệu: lùi 100 giờ để backfill nhẹ
+  return new Date(Date.now() -100 * 60 * 60 * 1000);
 }
 
 // Chạy một lượt

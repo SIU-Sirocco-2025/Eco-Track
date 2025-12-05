@@ -103,6 +103,7 @@ Script:
 - AQI Client Endpoints: xem [controllers/client/aqi.controller.js](controllers/client/aqi.controller.js)
 - Prediction Endpoints: xem [controllers/api/prediction.controller.js](controllers/api/prediction.controller.js)
 - API Docs giao diện: [views/client/pages/docs/index.pug](views/client/pages/docs/index.pug)
+- Xem chi tiết API Docs: https://ecotrack.asia/api/docs
 
 ### NGSI-LD API
 Eco-Track tuân thủ chuẩn NGSI-LD (ETSI GS CIM 009) cho tương tác Smart City:
@@ -120,11 +121,11 @@ Context definition: [public/context.jsonld](public/context.jsonld) hoặc endpoi
 ```bash
 # Lấy AQI entity mới nhất
 curl -H "Accept: application/ld+json" \
-  https://ecotrack.asia/api/ngsi-ld/entities/district1
+   https://ecotrack.asia/api/ngsi-ld/entities/district1
 
 # Truy vấn temporal (24h gần nhất)
 curl -H "Accept: application/ld+json" \
-  "https://ecotrack.asia/api/ngsi-ld/entities/district1/temporal?limit=24"
+   "https://ecotrack.asia/api/ngsi-ld/entities/district1/temporal?limit=24"
 ```
 
 ## NGSI-LD & FIWARE Integration
@@ -305,13 +306,37 @@ node scripts/seed-72h-data.js
 ```
 - Script sẽ tạo dữ liệu chuẩn cho các model quận: xem [scripts/seed-72h-data.js](scripts/seed-72h-data.js) và các model trong [models/index.js](models/index.js).
 
+
+
 ### 6) Thu thập OpenAQ theo giờ (tuỳ chọn)
-- Dùng khi có `OPENAQ_API_KEY` và muốn dữ liệu thật:
+- Dùng khi có `OPENAQ_API_KEY` và muốn dữ liệu thật và script ban đầu sẽ cố gắng lấy 100 giờ trước đó:
 ```bash
 node scripts/fetch-openaq-hours.js
 ```
 - Dữ liệu giờ lưu vào [`HCMCAirHour`](models/hcmcAirHour.model.js). Sau đó đồng bộ/bản đồ hoá sang các quận qua dịch vụ:
   - Đồng bộ tự động trong service: [services/aqiSyncService.js](services/aqiSyncService.js) hoặc script tiện ích [scripts/sync-openaq-to-districts.js](scripts/sync-openaq-to-districts.js).
+
+### 6.1) Đồng bộ OpenAQ sang dữ liệu quận (scripts/sync-openaq-to-districts.js)
+
+- Dùng khi bạn **đã có dữ liệu giờ trong** [`HCMCAirHour`](models/hcmcAirHour.model.js) (từ script trên) và muốn đổ sang các collection quận (`district*_readings`, `hcmc_readings`) để:
+  - Xem trên bản đồ client, dashboard admin
+  - Test nhanh mà không cần chạy `services/aqiSyncService` trong server
+
+```bash
+# Mặc định: sync 72 giờ gần nhất
+node scripts/sync-openaq-to-districts.js
+
+# Tuỳ chọn: sync N giờ gần nhất (ví dụ 168 giờ = 7 ngày)
+node scripts/sync-openaq-to-districts.js 168
+```
+
+- Script sẽ:
+  - Đọc N bản ghi mới nhất từ `hcmc_air_hours`
+  - Tính AQI tổng hợp từ các pollutants (PM2.5, PM10, O₃, NO₂, SO₂, CO) bằng hàm `calculateOverallAQI` trong [scripts/sync-openaq-to-districts.js](scripts/sync-openaq-to-districts.js)
+  - Sinh dữ liệu `current.pollution` và `current.weather` cho từng quận theo schema chuẩn trong [models/baseReadingSchema.js](models/baseReadingSchema.js)
+  - Ghi vào các collection quận trong [models/index.js](models/index.js) (ví dụ [models/district3.model.js](models/district3.model.js), [models/hcmc.model.js](models/hcmc.model.js))
+
+> Lưu ý: nếu bạn dùng chế độ sync tự động trong [services/aqiSyncService.js](services/aqiSyncService.js) thì **không cần** chạy script này thường xuyên, chỉ dùng khi muốn “đổ lại” dữ liệu lịch sử thủ công.
 
 ### 7) Kiểm tra dữ liệu OpenAQ gần nhất (tuỳ chọn)
 ```bash
