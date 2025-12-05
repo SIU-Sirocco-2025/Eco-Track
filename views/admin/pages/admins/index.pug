@@ -1,0 +1,325 @@
+extends ../../layouts/default.pug
+
+block main
+    // Page header
+    .admins-header.d-flex.justify-content-between.align-items-center.mb-4.pb-3.border-bottom
+        h2.h4.mb-0
+            i.bi.bi-shield-lock.me-2
+            | Quản lý Tài khoản Admin
+        button.btn.btn-success.btn-sm#btnAddAdmin(
+            type='button'
+            data-bs-toggle='modal'
+            data-bs-target='#modalAddAdmin'
+        )
+            i.bi.bi-plus-lg.me-1
+            | Thêm Admin
+
+    // Table container
+    .admins-container.card.border-0.shadow-sm
+        .card-body
+            .table-responsive
+                table.table.table-hover.align-middle#adminsTable
+                    thead.table-light
+                        tr
+                            th #
+                            th Họ tên
+                            th Email
+                            th Trạng thái
+                            th Ngày tạo
+                            th Hành động
+                    tbody#adminTable
+                        tr
+                            td(colspan='6').text-center.py-4.text-muted
+                                i.bi.bi-arrow-repeat.me-2
+                                | Đang tải...
+
+    // Modal: Add Admin (Bootstrap 5)
+    .modal.fade#modalAddAdmin(tabindex='-1' aria-hidden='true')
+        .modal-dialog
+            .modal-content
+                .modal-header
+                    h5.modal-title
+                        i.bi.bi-person-plus.me-2
+                        | Thêm Admin Mới
+                    button.btn-close(
+                        type='button'
+                        data-bs-dismiss='modal'
+                        aria-label='Close'
+                    )
+                .modal-body
+                    form#formAddAdmin
+                        .mb-3
+                            label.form-label(for='fullName') Họ tên *
+                            input#fullName.form-control(
+                                type='text'
+                                required
+                                placeholder='Nhập họ tên'
+                            )
+                        .mb-3
+                            label.form-label(for='email') Email *
+                            input#email.form-control(
+                                type='email'
+                                required
+                                placeholder='admin@ecotrack.com'
+                            )
+                        .mb-3
+                            label.form-label(for='password') Mật khẩu *
+                            input#password.form-control(
+                                type='password'
+                                required
+                                minlength='6'
+                                placeholder='Tối thiểu 6 ký tự'
+                            )
+                .modal-footer
+                    button.btn.btn-secondary(
+                        type='button'
+                        data-bs-dismiss='modal'
+                    )
+                        i.bi.bi-x-lg.me-1
+                        | Đóng
+                    button.btn.btn-success(
+                        type='submit'
+                        form='formAddAdmin'
+                    )
+                        i.bi.bi-check2-circle.me-1
+                        | Tạo Admin
+
+    // Scoped styles to avoid conflicts
+    style.
+        .admins-header h2 { font-weight: 700; }
+        .admins-container .card-body { padding: 1.25rem; }
+        #adminsTable td, #adminsTable th { white-space: nowrap; }
+        .badge-status { font-size: .8rem; }
+
+    // Script: load, add, reset, delete
+    script.
+        function renderEmpty(message) {
+            const tbody = document.getElementById('adminTable');
+            if (!tbody) return;
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">
+                        <i class="bi bi-exclamation-triangle me-2"></i>${message}
+                    </td>
+                </tr>
+            `;
+        }
+
+        async function loadAdmins() {
+            const tbody = document.getElementById('adminTable');
+            if (!tbody) return;
+
+            // Loading state
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">
+                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>Đang tải...
+                    </td>
+                </tr>
+            `;
+
+            try {
+                const r = await fetch('/admin/admins/api/list', {
+                    headers: { Accept: 'application/json' }
+                });
+
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+
+                const data = await r.json();
+
+                if (!data?.success) {
+                    renderEmpty(data?.message || 'Không thể tải danh sách admin');
+                    return;
+                }
+
+                const rows = Array.isArray(data.admins) ? data.admins : [];
+
+                if (rows.length === 0) {
+                    renderEmpty('Chưa có admin nào');
+                    return;
+                }
+
+                tbody.innerHTML = '';
+
+                rows.forEach((admin, idx) => {
+                    const createdAt = admin?.createdAt
+                        ? new Date(admin.createdAt).toLocaleDateString('vi-VN')
+                        : 'N/A';
+
+                    const isActive = admin?.status === 'active';
+                    const statusClass = isActive
+                        ? 'bg-success-subtle text-success'
+                        : 'bg-danger-subtle text-danger';
+                    const statusText = isActive ? 'Hoạt động' : 'Khóa';
+
+                    const tr = document.createElement('tr');
+
+                    tr.innerHTML = `
+                        <td>${idx + 1}</td>
+                        <td>${admin?.fullName || 'N/A'}</td>
+                        <td>${admin?.email || 'N/A'}</td>
+                        <td>
+                            <span class="badge ${statusClass} badge-status">
+                                ${statusText}
+                            </span>
+                        </td>
+                        <td>${createdAt}</td>
+                        <td class="d-flex gap-2">
+                            <button
+                                class="btn btn-warning btn-sm"
+                                onclick="resetAdminPassword('${admin?._id || ''}', '${admin?.fullName || ''}')"
+                            >
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>
+                                Reset PW
+                            </button>
+                            <button
+                                class="btn btn-danger btn-sm"
+                                onclick="deleteAdmin('${admin?._id || ''}', '${admin?.fullName || ''}')"
+                            >
+                                <i class="bi bi-trash me-1"></i>
+                                Xóa
+                            </button>
+                        </td>
+                    `;
+
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error('Load admins error:', err);
+                renderEmpty('Lỗi tải dữ liệu. Vui lòng thử lại.');
+            }
+        }
+
+        async function resetAdminPassword(id, fullName) {
+            if (!id) {
+                alert('Thiếu ID admin');
+                return;
+            }
+
+            if (
+                !confirm(
+                    `Bạn chắc chắn muốn reset password cho admin ${fullName}?\nMật khẩu mới sẽ là: 123456`
+                )
+            ) {
+                return;
+            }
+
+            try {
+                const r = await fetch(`/admin/admins/api/reset-password/${id}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json'
+                    }
+                });
+
+                const data = await r.json();
+
+                if (data?.success) {
+                    alert('Reset password thành công!\nMật khẩu mới: 123456');
+                    loadAdmins();
+                } else {
+                    alert('Lỗi: ' + (data?.message || 'Không xác định'));
+                }
+            } catch (e) {
+                alert('Lỗi: ' + e.message);
+            }
+        }
+
+        async function deleteAdmin(id, fullName) {
+            if (!id) {
+                alert('Thiếu ID admin');
+                return;
+            }
+
+            if (!confirm(`Bạn chắc chắn muốn xóa admin ${fullName}?`)) {
+                return;
+            }
+
+            try {
+                const r = await fetch(`/admin/admins/api/delete/${id}`, {
+                    method: 'DELETE',
+                    headers: { Accept: 'application/json' }
+                });
+
+                const data = await r.json();
+
+                if (data?.success) {
+                    alert('Xóa thành công');
+                    loadAdmins();
+                } else {
+                    alert('Lỗi: ' + (data?.message || 'Không xác định'));
+                }
+            } catch (e) {
+                alert('Lỗi: ' + e.message);
+            }
+        }
+
+        // Modal handlers (safe guards)
+        const modalEl = document.getElementById('modalAddAdmin');
+        let bsModal = null;
+
+        function initModal() {
+            if (!modalEl) return;
+            try {
+                bsModal = new bootstrap.Modal(modalEl);
+            } catch (_) {
+                bsModal = null;
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initModal);
+        } else {
+            initModal();
+        }
+
+        // Form submit
+        const addForm = document.getElementById('formAddAdmin');
+
+        addForm?.addEventListener('submit', async e => {
+            e.preventDefault();
+
+            const formData = {
+                fullName: document.getElementById('fullName')?.value?.trim(),
+                email: document.getElementById('email')?.value?.trim(),
+                password: document.getElementById('password')?.value
+            };
+
+            if (!formData.fullName || !formData.email || !formData.password) {
+                alert('Vui lòng nhập đầy đủ thông tin');
+                return;
+            }
+
+            try {
+                const res = await fetch('/admin/admins/api/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await res.json();
+
+                if (data?.success) {
+                    alert('Tạo admin thành công!');
+                    bsModal?.hide();
+                    e.target.reset();
+                    loadAdmins();
+                } else {
+                    alert('Lỗi: ' + (data?.message || 'Không xác định'));
+                }
+            } catch (err) {
+                alert('Lỗi: ' + err.message);
+            }
+        });
+
+        // Load on page ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadAdmins);
+        } else {
+            loadAdmins();
+        }

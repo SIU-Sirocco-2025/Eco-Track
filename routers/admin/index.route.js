@@ -13,6 +13,7 @@ const userRoute = require('./user.route');
 const settingsRoute = require('./settings.route');
 const authRoute = require('./auth.route')
 const ticketRoute = require('./ticket.route');
+const adminsRoute = require('./admins.route');
 const { requireAuth } = require('../../middlewares/admin.middleware');
 
 module.exports = (app) => {
@@ -27,7 +28,7 @@ module.exports = (app) => {
     app.use(PATH_ADMIN + '/weather', requireAuth, weatherRoute);
     app.use(PATH_ADMIN + '/users', requireAuth, usersRoute);
     app.use(PATH_ADMIN + '/user', requireAuth, userRoute);
-
+    app.use(PATH_ADMIN + '/admins', requireAuth, adminsRoute);
     app.use(PATH_ADMIN + '/settings', requireAuth, settingsRoute);
     app.use(PATH_ADMIN + '/tickets', requireAuth, ticketRoute);
 
