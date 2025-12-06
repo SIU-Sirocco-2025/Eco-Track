@@ -114,7 +114,8 @@ body{ background-color: var(--brand-50); }
 .aqi-unknown{ background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.25); }
 .aqi-good{ background:#1a9e3e; color:#fff; }
 .aqi-moderate{ background:#95d500; color:#243b02; }
-.aqi-unhealthy{ background:#f1c40f; color:#243b02; }
+.aqi-unhealthy-for-sensitive{ background:#f1c40f; color:#243b02; }
+.aqi-unhealthy{ background:#e67e22; color:#fff; }
 .aqi-very-unhealthy{ background:#ff8c00; color:#fff; }
 .aqi-hazardous{ background:#d41e3a; color:#fff; }
 
@@ -132,7 +133,8 @@ body{ background-color: var(--brand-50); }
 .aqi-statusbar.card { border-radius: 10px; }
 .aqi-theme-good    { background: linear-gradient(135deg,#e8f7ee,#c5f0d5); }
 .aqi-theme-moderate{ background: linear-gradient(135deg,#f5f9e0,#e8f4a8); }
-.aqi-theme-unhealthy{ background: linear-gradient(135deg,#fff8e1,#ffe082); }
+.aqi-theme-unhealthy-for-sensitive{ background: linear-gradient(135deg,#fffbe1,#fff9c4); }
+.aqi-theme-unhealthy{ background: linear-gradient(135deg,#ffe8d5,#ffd9c0); }
 .aqi-theme-very-unhealthy{ background: linear-gradient(135deg,#ffe6d5,#ffb27a); }
 .aqi-theme-hazardous{ background: linear-gradient(135deg,#ffe3e3,#ffb3b3); }
 
@@ -149,7 +151,7 @@ body{ background-color: var(--brand-50); }
 .pm-dot.good{ background:#1a9e3e; }
 .pm-dot.moderate{ background:#95d500; }
 .pm-dot.unhealthy-for-sensitive{ background:#f1c40f; }
-.pm-dot.unhealthy{ background:#f1c40f; }
+.pm-dot.unhealthy{ background:#e67e22; }
 .pm-dot.very-unhealthy{ background:#ff8c00; }
 .pm-dot.hazardous{ background:#d41e3a; }
 .pm-dot.need-pulse::after{
@@ -167,6 +169,13 @@ body{ background-color: var(--brand-50); }
   padding: 0 !important;
 }
 
+.marker-tooltip-hidden {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 .station-popup {
   background: #fff !important;
   border-left: 4px solid !important;
@@ -178,7 +187,7 @@ body{ background-color: var(--brand-50); }
 .tooltip-good { border-left-color: #1a9e3e !important; }
 .tooltip-moderate { border-left-color: #95d500 !important; }
 .tooltip-unhealthy-for-sensitive { border-left-color: #f1c40f !important; }
-.tooltip-unhealthy { border-left-color: #f1c40f !important; }
+.tooltip-unhealthy { border-left-color: #e67e22 !important; }
 .tooltip-very-unhealthy { border-left-color: #ff8c00 !important; }
 .tooltip-hazardous { border-left-color: #d41e3a !important; }
 
@@ -260,11 +269,12 @@ body.aqi-safe .aqi-map-ring{ box-shadow: 0 0 0 4px rgba(26, 158, 62, 0.15); }
   padding:.15rem .6rem;
   border-radius:999px;
 }
-.aqi-card-good{ border-top:4px solid #2ecc71; }
-.aqi-card-moderate{ border-top:4px solid #f1c40f; }
+.aqi-card-good{ border-top:4px solid #1a9e3e; }
+.aqi-card-moderate{ border-top:4px solid #95d500; }
+.aqi-card-unhealthy-for-sensitive{ border-top:4px solid #f1c40f; }
 .aqi-card-unhealthy{ border-top:4px solid #e67e22; }
-.aqi-card-very-unhealthy{ border-top:4px solid #8e44ad; }
-.aqi-card-hazardous{ border-top:4px solid #e74c3c; }
+.aqi-card-very-unhealthy{ border-top:4px solid #ff8c00; }
+.aqi-card-hazardous{ border-top:4px solid #d41e3a; }
 .aqi-station-meta{
   font-size:.9rem;
   color:#5f6b73;
@@ -1433,130 +1443,130 @@ body.aqi-safe .aqi-map-ring{ box-shadow: 0 0 0 4px rgba(26, 158, 62, 0.15); }
 
 /* Theme-based recommendations */
 .recommendation-good {
-  border-left: 5px solid #2d6a2d;
-  background: rgba(212, 241, 212, 0.15);
+  border-left: 5px solid #1a9e3e;
+  background: rgba(26, 158, 62, 0.08);
 }
 
 .recommendation-good .recommendation-aqi-value {
-  color: #2d6a2d;
+  color: #1a9e3e;
 }
 
 .recommendation-good .recommendation-aqi-label {
-  color: #2d6a2d;
+  color: #1a9e3e;
 }
 
 .recommendation-good .recommendation-emoji {
-  background: rgba(45, 106, 45, 0.2);
+  background: rgba(26, 158, 62, 0.15);
 }
 
 .recommendation-good .recommendation-icon {
-  background: rgba(45, 106, 45, 0.2);
-  color: #2d6a2d;
+  background: rgba(26, 158, 62, 0.15);
+  color: #1a9e3e;
 }
 
 .recommendation-moderate {
-  border-left: 5px solid #a87600;
-  background: rgba(255, 248, 221, 0.2);
+  border-left: 5px solid #95d500;
+  background: rgba(149, 213, 0, 0.08);
 }
 
 .recommendation-moderate .recommendation-aqi-value {
-  color: #a87600;
+  color: #95d500;
 }
 
 .recommendation-moderate .recommendation-aqi-label {
-  color: #a87600;
+  color: #95d500;
 }
 
 .recommendation-moderate .recommendation-emoji {
-  background: rgba(168, 118, 0, 0.2);
+  background: rgba(149, 213, 0, 0.15);
 }
 
 .recommendation-moderate .recommendation-icon {
-  background: rgba(168, 118, 0, 0.2);
-  color: #a87600;
+  background: rgba(149, 213, 0, 0.15);
+  color: #95d500;
 }
 
 .recommendation-unhealthy-for-sensitive {
-  border-left: 5px solid #a64d0a;
-  background: rgba(255, 232, 209, 0.2);
+  border-left: 5px solid #f1c40f;
+  background: rgba(241, 196, 15, 0.08);
 }
 
 .recommendation-unhealthy-for-sensitive .recommendation-aqi-value {
-  color: #a64d0a;
+  color: #f1c40f;
 }
 
 .recommendation-unhealthy-for-sensitive .recommendation-aqi-label {
-  color: #a64d0a;
+  color: #f1c40f;
 }
 
 .recommendation-unhealthy-for-sensitive .recommendation-emoji {
-  background: rgba(166, 77, 10, 0.2);
+  background: rgba(241, 196, 15, 0.15);
 }
 
 .recommendation-unhealthy-for-sensitive .recommendation-icon {
-  background: rgba(166, 77, 10, 0.2);
-  color: #a64d0a;
+  background: rgba(241, 196, 15, 0.15);
+  color: #f1c40f;
 }
 
 .recommendation-unhealthy {
-  border-left: 5px solid #8b0000;
-  background: rgba(255, 217, 217, 0.2);
+  border-left: 5px solid #e67e22;
+  background: rgba(230, 126, 34, 0.08);
 }
 
 .recommendation-unhealthy .recommendation-aqi-value {
-  color: #8b0000;
+  color: #e67e22;
 }
 
 .recommendation-unhealthy .recommendation-aqi-label {
-  color: #8b0000;
+  color: #e67e22;
 }
 
 .recommendation-unhealthy .recommendation-emoji {
-  background: rgba(139, 0, 0, 0.2);
+  background: rgba(230, 126, 34, 0.15);
 }
 
 .recommendation-unhealthy .recommendation-icon {
-  background: rgba(139, 0, 0, 0.2);
-  color: #8b0000;
+  background: rgba(230, 126, 34, 0.15);
+  color: #e67e22;
 }
 
 .recommendation-very-unhealthy {
-  border-left: 5px solid #5a2d6a;
-  background: rgba(232, 212, 241, 0.2);
+  border-left: 5px solid #ff8c00;
+  background: rgba(255, 140, 0, 0.08);
 }
 
 .recommendation-very-unhealthy .recommendation-aqi-value {
-  color: #5a2d6a;
+  color: #ff8c00;
 }
 
 .recommendation-very-unhealthy .recommendation-aqi-label {
-  color: #5a2d6a;
+  color: #ff8c00;
 }
 
 .recommendation-very-unhealthy .recommendation-emoji {
-  background: rgba(90, 45, 106, 0.2);
+  background: rgba(255, 140, 0, 0.15);
 }
 
 .recommendation-very-unhealthy .recommendation-icon {
-  background: rgba(90, 45, 106, 0.2);
-  color: #5a2d6a;
+  background: rgba(255, 140, 0, 0.15);
+  color: #ff8c00;
 }
 
 .recommendation-hazardous {
-  border-left: 5px solid #660000;
-  background: rgba(255, 204, 204, 0.25);
+  border-left: 5px solid #d41e3a;
+  background: rgba(212, 30, 58, 0.08);
 }
 
 .recommendation-hazardous .recommendation-aqi-value {
-  color: #660000;
+  color: #d41e3a;
 }
 
 .recommendation-hazardous .recommendation-aqi-label {
-  color: #660000;
+  color: #d41e3a;
 }
 
 .recommendation-hazardous .recommendation-emoji {
-  background: rgba(102, 0, 0, 0.2);
+  background: rgba(212, 30, 58, 0.15);
 }
 
 .recommendation-hazardous .recommendation-icon {

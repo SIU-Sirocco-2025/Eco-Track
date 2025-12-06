@@ -28,7 +28,8 @@ mixin aqiLegendInline()
         const aqiLegendItems = [
           { c:'#1a9e3e', t:'0-50 Tốt' },
           { c:'#95d500', t:'51-100 Trung bình' },
-          { c:'#f1c40f', t:'101-200 Xấu/Nhạy cảm' },
+          { c:'#f1c40f', t:'101-150 Nhạy cảm' },
+          { c:'#e67e22', t:'151-200 Xấu' },
           { c:'#ff8c00', t:'201-300 Rất xấu' },
           { c:'#d41e3a', t:'300+ Nguy hại' }
         ];
@@ -76,7 +77,7 @@ mixin aqiStationGrid()
 mixin aqiRecommendations()
   .aqi-recommendations.card.border-0.shadow-sm
     .card-body
-      h5.card-title.d-flex.align-items-center.gap-2.mb-0
+      h5.card-title.d-flex.align-items-center.gap-2.mb-3
         i.bi.bi-info-circle.text-info
         | Khuyến nghị
       

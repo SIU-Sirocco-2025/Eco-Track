@@ -21,10 +21,6 @@
     const info = aqiClass(Number(aqi || 0));
     const displayAqi = typeof aqi === 'number' ? Math.round(aqi) : (aqi ?? '--');
     valueEl.textContent = displayAqi;
-    root.classList.remove(
-      'aqi-good', 'aqi-moderate', 'aqi-unhealthy', 'aqi-very-unhealthy', 'aqi-hazardous', 'aqi-unknown'
-    );
-    root.classList.add(`aqi-${info.key}`);
     root.title = `Cập nhật: ${formatTime(ts)} • ${info.label}`;
   }
 
@@ -499,7 +495,7 @@
     // Cập nhật khuyến nghị dựa trên AQI trung bình
     updateRecommendations(avg);
 
-    wrap.classList.remove('aqi-theme-good', 'aqi-theme-moderate', 'aqi-theme-unhealthy', 'aqi-theme-very-unhealthy', 'aqi-theme-hazardous');
+    wrap.classList.remove('aqi-theme-good', 'aqi-theme-moderate', 'aqi-theme-unhealthy-for-sensitive', 'aqi-theme-unhealthy', 'aqi-theme-very-unhealthy', 'aqi-theme-hazardous');
     document.body.classList.remove('aqi-safe', 'aqi-danger');
     mapEl.classList.add('aqi-map-ring');
     if (cls.key === 'good' || cls.key === 'moderate') {
@@ -510,8 +506,9 @@
     wrap.classList.add(
       cls.key === 'good' ? 'aqi-theme-good' :
         cls.key === 'moderate' ? 'aqi-theme-moderate' :
-          cls.key === 'unhealthy' ? 'aqi-theme-unhealthy' :
-            cls.key === 'very-unhealthy' ? 'aqi-theme-very-unhealthy' : 'aqi-theme-hazardous'
+          cls.key === 'unhealthy-for-sensitive' ? 'aqi-theme-unhealthy-for-sensitive' :
+            cls.key === 'unhealthy' ? 'aqi-theme-unhealthy' :
+              cls.key === 'very-unhealthy' ? 'aqi-theme-very-unhealthy' : 'aqi-theme-hazardous'
     );
   }
 
@@ -595,7 +592,7 @@
             const tsText = originalFeature.properties.ts ? formatTime(originalFeature.properties.ts) : '--';
 
             // Tooltip khi hover
-            layer.bindTooltip(`<strong>${props.label}</strong><br/>AQI: ${displayAqi} (${props.info})`, {
+            layer.bindTooltip(`<div style="text-align:center;"><strong style="font-size:1.05em;color:#333;">📍 ${props.label}</strong><br/><div style="margin:6px 0;font-weight:bold;color:${info.color};">AQI: ${displayAqi}</div><div style="font-size:0.9em;">${props.info}</div></div>`, {
               direction: 'center',
               sticky: true
             });
@@ -603,8 +600,8 @@
             // Popup khi click
             layer.bindPopup(`
               <div class="voronoi-popup aqi-popup-${info.key}">
-                <strong>${props.label}</strong><br/>
-                <div style="font-size:1.3em;font-weight:bold;color:${info.color};margin:4px 0;">${displayAqi} AQI</div>
+                <strong style="display:block;margin-bottom:6px;font-size:1.05em;">📍 ${props.label}</strong>
+                <div style="font-size:1.3em;font-weight:bold;color:${info.color};margin:6px 0;">${displayAqi} AQI</div>
                 <div class="small text-muted">${props.info}</div>
                 <div class="small text-muted" style="margin-top:6px;"><i class="bi bi-clock-history"></i> ${tsText}</div>
               </div>
@@ -661,8 +658,8 @@
       const marker = L.marker([lat, lng], { icon: divIcon })
         .bindTooltip(`
           <div class="station-popup aqi-popup-${info.key}">
-            <strong style="display:block;margin-bottom:4px;">${label}</strong>
-            <div style="font-size:1.3em;font-weight:bold;color:${info.color};margin:4px 0;">${displayAqi} AQI</div>
+            <strong style="display:block;margin-bottom:6px;font-size:1.1em;color:#333;">📍 ${label}</strong>
+            <div style="font-size:1.3em;font-weight:bold;color:${info.color};margin:6px 0;">${displayAqi} AQI</div>
             <div class="small text-muted" style="margin:4px 0;">${info.label}</div>
             <div class="small text-muted" style="margin-top:6px;"><i class="bi bi-clock-history" style="margin-right:4px;"></i>${tsText}</div>
           </div>
@@ -728,7 +725,8 @@
       const legendItems = [
         { min: 0, max: 50, label: 'Tốt', color: '#1a9e3e', range: '0-50' },
         { min: 51, max: 100, label: 'Trung bình', color: '#95d500', range: '51-100' },
-        { min: 101, max: 200, label: 'Xấu/Nhạy cảm', color: '#f1c40f', range: '101-200' },
+        { min: 101, max: 150, label: 'Nhạy cảm', color: '#f1c40f', range: '101-150' },
+        { min: 151, max: 200, label: 'Xấu', color: '#e67e22', range: '151-200' },
         { min: 201, max: 300, label: 'Rất xấu', color: '#ff8c00', range: '201-300' },
         { min: 301, max: 999, label: 'Nguy hại', color: '#d41e3a', range: '300+' }
       ];
@@ -741,7 +739,7 @@
       gradientBar.style.cssText = `
         width:100%;
         height:20px;
-        background: linear-gradient(to right, #1a9e3e 0%, #95d500 25%, #f1c40f 45%, #ff8c00 65%, #d41e3a 80%, #7a0519 100%);
+        background: linear-gradient(to right, #1a9e3e 0%, #95d500 20%, #f1c40f 40%, #e67e22 60%, #ff8c00 80%, #d41e3a 100%);
         border-radius:4px;
         margin-bottom:8px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
