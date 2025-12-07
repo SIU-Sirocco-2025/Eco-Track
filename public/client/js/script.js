@@ -22,6 +22,12 @@
     const displayAqi = typeof aqi === 'number' ? Math.round(aqi) : (aqi ?? '--');
     valueEl.textContent = displayAqi;
     root.title = `Cập nhật: ${formatTime(ts)} • ${info.label}`;
+
+    root.classList.remove(
+      'aqi-unknown','aqi-good','aqi-moderate',
+      'aqi-unhealthy-for-sensitive','aqi-unhealthy','aqi-very-unhealthy','aqi-hazardous'
+    );
+    root.classList.add(info.key ? `aqi-${info.key}` : 'aqi-unknown');
   }
 
   // Cập nhật header luôn, dù có hay không có map
