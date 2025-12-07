@@ -387,7 +387,13 @@ block main
       +techCard(
         'code-slash',
         'Backend',
-        ['Node.js & Express.js', 'MongoDB & Mongoose', 'Python (LSTM prediction)', 'Node-cron (Scheduler)']
+        [
+          'Node.js & Express.js',
+          'MongoDB & Mongoose',
+          'Python (LSTM prediction)',
+          'Node-cron (Scheduler)',
+          'RESTful API cho ứng dụng bên thứ ba'
+        ]
       )
       +techCard(
         'palette',
@@ -397,7 +403,14 @@ block main
       +techCard(
         'cloud',
         'Data & AI',
-        ['OpenAQ API v3 (Real-time data)', 'PyTorch LSTM (Time-series prediction)', 'Pandas & NumPy (Data processing)', 'Scikit-learn (Scaling & metrics)', 'MongoDB (Time-series storage)']
+        [
+          'OpenAQ API v3 (Real-time data)',
+          'PyTorch LSTM (Time-series prediction)',
+          'Pandas & NumPy (Data processing)',
+          'Scikit-learn (Scaling & metrics)',
+          'MongoDB (Time-series storage)',
+          'JSON-LD & NGSI-LD cho Smart City integration'
+        ]
       )
       +techCard(
         'gear',
@@ -429,7 +442,8 @@ block main
           'Fork repository trên GitHub',
           'Tạo Pull Request với tính năng mới',
           'Báo cáo lỗi qua Issues',
-          'Đề xuất cải tiến và tính năng'
+          'Đề xuất cải tiến và tính năng',
+          'Tích hợp REST API & NGSI-LD API vào ứng dụng Smart City (xem API Docs)'
         ]
       )
       +licenseCard(
@@ -443,7 +457,8 @@ block main
   -
     const ctaButtons = [
       { class: 'btn btn-light btn-lg', url: '/', icon: 'bi bi-house-door me-2', text: 'Về trang chủ' },
-      { class: 'btn btn-outline-light btn-lg', url: '/aqi', icon: 'bi bi-map me-2', text: 'Xem bản đồ AQI' }
+      { class: 'btn btn-outline-light btn-lg', url: '/aqi', icon: 'bi bi-map me-2', text: 'Xem bản đồ AQI' },
+      { class: 'btn btn-outline-light btn-lg', url: '/api/docs', icon: 'bi bi-book me-2', text: 'Xem API Docs' }
     ]
   +ctaSection(
     'Bắt đầu theo dõi chất lượng không khí ngay hôm nay',
