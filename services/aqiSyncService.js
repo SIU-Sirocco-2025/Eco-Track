@@ -11,6 +11,8 @@ const models = require('../models');
 
 const USE_ORION = String(process.env.USE_ORION || '').toLowerCase() === 'true';
 let orionSync = null;
+let latestData = null;
+
 if (USE_ORION) {
   try {
     orionSync = require('../services/orionSync'); // ensure this file exists
@@ -228,7 +230,7 @@ function convertToDistrictReading(airHourData, districtInfo, isHCMC = false, hcm
   }
 
   const fakeWeather = {
-    ts: airHourData.from,
+    ts: airHourData.to,
     tp: parseFloat((28 + Math.random() * 5).toFixed(1)),
     hu: parseFloat((60 + Math.random() * 20).toFixed(1)),
     pr: parseFloat((1010 + Math.random() * 10).toFixed(1)),
@@ -246,7 +248,7 @@ function convertToDistrictReading(airHourData, districtInfo, isHCMC = false, hcm
     },
     current: {
       pollution: {
-        ts: airHourData.from,
+        ts: airHourData.to,
         aqius: finalAQI,
         mainus: mainus,
         aqicn: null,
@@ -273,63 +275,85 @@ const districtsList = [
   { model: models.BinhTanReading, city: 'Quận Bình Tân', state: 'Ho Chi Minh City', country: 'Vietnam', coordinates: [106.6053, 10.7400] },
   { model: models.PhuNhuanReading, city: 'Quận Phú Nhuận', state: 'Ho Chi Minh City', country: 'Vietnam', coordinates: [106.6780, 10.7980] },
   { model: models.BinhThanhReading, city: 'Quận Bình Thạnh', state: 'Ho Chi Minh City', country: 'Vietnam', coordinates: [106.7123, 10.8058] },
-  { model: models.ThuDucReading, city: 'Thủ Đức', state: 'Ho Chi Minh City', country: 'Vietnam', coordinates: [106.7675, 10.8509] }
+  { model: models.ThuDucReading, city: 'Thủ Đức', state: 'Ho Chi Minh City', country: 'Vietnam', coordinates: [106.7675, 10.8509] },
+  { model: models.TanPhuReading, city: 'Quận Tân Phú', state: 'Ho Chi Minh City', country: 'Vietnam', coordinates: [106.6231, 10.7865] }
 ];
 
 // Hàm sync realtime
 async function syncRealtimeData() {
   try {
-    // Lấy record mới nhất từ hcmc_air_hours
-    const latestRecord = await HCMCAirHour.findOne()
-      .sort({ from: -1 })
-      .limit(1);
+    const latestRecords = await HCMCAirHour.find()
+      .sort({ to: -1 })
+      .limit(12);
 
-    if (!latestRecord) {
+    if (!latestRecords || latestRecords.length === 0) {
       console.log('[Sync] No data found in hcmc_air_hours');
       return;
     }
 
-    // Kiểm tra xem đã sync record này chưa bằng cách check trong database HCMC
-    const existingRecord = await models.HCMCReading.findOne({
-      'current.pollution.ts': latestRecord.from
-    });
+    latestRecords.reverse();
+    console.log(`[Sync] Checking ${latestRecords.length} latest records...`);
 
-    if (existingRecord) {
-      console.log(`[Sync] Already synced: ${latestRecord.from.toISOString()}`);
-      return;
-    }
+    // ✅ Bulk check để giảm queries
+    const timestamps = latestRecords.map(r => r.to);
+    const existingRecords = await models.HCMCReading.find({
+      'current.pollution.ts': { $in: timestamps }
+    }).select('current.pollution.ts').lean();
 
-    console.log(`\n[Sync] New data detected: ${latestRecord.from.toISOString()}`);
+    const syncedTimestamps = new Set(
+      existingRecords.map(r => r.current.pollution.ts.toISOString())
+    );
 
-    // Tính AQI gốc của HCMC trước
-    const { aqius: hcmcAQI } = calculateOverallAQI(latestRecord.measurements);
+    let newRecordsCount = 0;
+    let skippedCount = 0;
 
-    let successCount = 0;
-    let errorCount = 0;
-
-    // Sync vào tất cả các quận
-    for (const district of districtsList) {
-      try {
-        // Kiểm tra xem có phải HCMC không
-        const isHCMC = district.city === 'Ho Chi Minh City';
-        const reading = convertToDistrictReading(latestRecord, district, isHCMC, hcmcAQI);
-
-        // Upsert (update nếu có, insert nếu chưa có)
-        await district.model.updateOne(
-          { 'current.pollution.ts': latestRecord.from },
-          { $set: reading },
-          { upsert: true }
-        );
-
-        successCount++;
-      } catch (err) {
-        console.error(`[Sync] Error saving to ${district.city}:`, err.message);
-        errorCount++;
+    for (const latestRecord of latestRecords) {
+      // ✅ Check nhanh trong Set
+      if (syncedTimestamps.has(latestRecord.to.toISOString())) {
+        skippedCount++;
+        continue;
       }
+
+      newRecordsCount++;
+      console.log(`\n[Sync] New data detected: ${latestRecord.to.toISOString()}`);
+
+      const { aqius: hcmcAQI } = calculateOverallAQI(latestRecord.measurements);
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const district of districtsList) {
+        try {
+          const isHCMC = district.city === 'Ho Chi Minh City';
+          const reading = convertToDistrictReading(latestRecord, district, isHCMC, hcmcAQI);
+
+          await district.model.updateOne(
+            { 'current.pollution.ts': latestRecord.to },
+            { $set: reading },
+            { upsert: true }
+          );
+
+          successCount++;
+
+          if (USE_ORION && orionSync) {
+            try {
+              const districtKey = getDistrictKey(district.city);
+              await orionSync.syncAQIReading(reading, districtKey);
+            } catch (orionErr) {
+              console.error(`[Orion-LD] Failed to sync ${district.city}:`, orionErr.message);
+            }
+          }
+        } catch (err) {
+          console.error(`[Sync] Error saving to ${district.city}:`, err.message);
+          errorCount++;
+        }
+      }
+
+      console.log(`[Sync] ✅ Success: ${successCount} districts, ❌ Errors: ${errorCount}`);
+      console.log(`[Sync] AQI: ${hcmcAQI || 'N/A'}`);
     }
 
-    console.log(`[Sync] ✅ Success: ${successCount} districts, ❌ Errors: ${errorCount}`);
-    console.log(`[Sync] AQI: ${hcmcAQI || 'N/A'}\n`);
+    console.log(`\n[Sync Summary] New: ${newRecordsCount}, Skipped: ${skippedCount}\n`);
 
   } catch (error) {
     console.error('[Sync] Error:', error.message);
@@ -342,13 +366,15 @@ async function initialSync() {
     console.log('\n🔄 [Initial Sync] Starting...\n');
 
     const airHourRecords = await HCMCAirHour.find()
-      .sort({ from: -1 })
+      .sort({ to: -1 })
       .limit(72);
 
     if (!airHourRecords || airHourRecords.length === 0) {
       console.log('[Initial Sync] No data found');
       return;
     }
+
+    airHourRecords.reverse();
 
     console.log(`[Initial Sync] Processing ${airHourRecords.length} records...`);
 
@@ -365,23 +391,26 @@ async function initialSync() {
           const reading = convertToDistrictReading(airHour, district, isHCMC, hcmcAQI);
 
           await district.model.updateOne(
-            { 'current.pollution.ts': airHour.from },
+            { 'current.pollution.ts': airHour.to },
             { $set: reading },
             { upsert: true }
           );
 
           totalSaved++;
+
+          if (USE_ORION && orionSync) {
+            try {
+              const districtKey = getDistrictKey(district.city);
+              await orionSync.syncAQIReading(reading, districtKey);
+            } catch (orionErr) {
+              // Silent error cho Orion-LD trong initial sync
+              console.error(`[Orion-LD] Failed to sync ${district.city}:`, orionErr.message);
+            }
+          }
         } catch (err) {
           // Silent error during initial sync
         }
-        if (USE_ORION && orionSync && latestData) {
-          try {
-            const districtKey = getDistrictKey(district.city);
-            await orionSync.syncAQIReading(latestData, districtKey);
-          } catch (err) {
-            console.error(`[Orion-LD] Failed to sync ${district.city}:`, err.message);
-          }
-        }
+
       }
     }
 

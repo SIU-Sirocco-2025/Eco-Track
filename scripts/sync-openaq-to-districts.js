@@ -225,12 +225,18 @@ function calculateOverallAQI(measurements) {
 }
 
 // Hàm chuyển đổi từ OpenAQ sang định dạng district reading
-function convertToDistrictReading(airHourData, districtInfo) {
+function convertToDistrictReading(airHourData, districtInfo, isHCMC = false, hcmcAQI = null) {
   const { aqius, mainus } = calculateOverallAQI(airHourData.measurements);
+  
+  let finalAQI = aqius;
+  if (!isHCMC && hcmcAQI != null) {
+    const offset = (Math.random() * 2 - 1) * 12; // Random -12 đến +12
+    finalAQI = Math.round(Math.max(0, hcmcAQI + offset));
+  }
   
   // Tạo fake weather data (có thể integrate với weather API sau)
   const fakeWeather = {
-    ts: airHourData.from,
+    ts: airHourData.to,
     tp: 28 + Math.random() * 5, // 28-33°C
     hu: 60 + Math.random() * 20, // 60-80%
     pr: 1010 + Math.random() * 10, // 1010-1020 hPa
@@ -248,8 +254,8 @@ function convertToDistrictReading(airHourData, districtInfo) {
     },
     current: {
       pollution: {
-        ts: airHourData.from,
-        aqius: aqius,
+        ts: airHourData.to,
+        aqius: finalAQI,
         mainus: mainus,
         aqicn: null,
         maincn: null
@@ -275,7 +281,8 @@ const districtsList = [
   { model: models.BinhTanReading, city: 'Quận Bình Tân', state: 'Ho Chi Minh City', country: 'Vietnam', coordinates: [106.6053, 10.7400] },
   { model: models.PhuNhuanReading, city: 'Quận Phú Nhuận', state: 'Ho Chi Minh City', country: 'Vietnam', coordinates: [106.6780, 10.7980] },
   { model: models.BinhThanhReading, city: 'Quận Bình Thạnh', state: 'Ho Chi Minh City', country: 'Vietnam', coordinates: [106.7123, 10.8058] },
-  { model: models.ThuDucReading, city: 'Thủ Đức', state: 'Ho Chi Minh City', country: 'Vietnam', coordinates: [106.7675, 10.8509] }
+  { model: models.ThuDucReading, city: 'Thủ Đức', state: 'Ho Chi Minh City', country: 'Vietnam', coordinates: [106.7675, 10.8509] },
+  { model: models.TanPhuReading, city: 'Quận Tân Phú', state: 'Ho Chi Minh City', country: 'Vietnam', coordinates: [106.6231, 10.7865] }
 ];
 
 // Hàm chính để sync data
@@ -285,7 +292,7 @@ async function syncOpenAQToDistricts(hoursLimit = 72) {
 
     // Lấy dữ liệu mới nhất từ hcmc_air_hours
     const airHourRecords = await HCMCAirHour.find()
-      .sort({ from: -1 })
+      .sort({ to: -1 })
       .limit(hoursLimit);
 
     if (!airHourRecords || airHourRecords.length === 0) {
@@ -293,31 +300,35 @@ async function syncOpenAQToDistricts(hoursLimit = 72) {
       return;
     }
 
+    airHourRecords.reverse(); // Xử lý từ cũ đến mới
+
     console.log(`📊 Found ${airHourRecords.length} records from OpenAQ\n`);
 
     let totalSaved = 0;
 
     // Lưu từng record vào tất cả các quận
     for (const airHour of airHourRecords) {
-      console.log(`⏰ Processing: ${airHour.from.toISOString()}`);
-      
+      console.log(`⏰ Processing: ${airHour.to.toISOString()}`);
+      const { aqius: hcmcAQI } = calculateOverallAQI(airHour.measurements);
       for (const district of districtsList) {
         try {
+          // Xác định trạm thành phố (HCMC-wide) để không random offset
+          const isHCMC = district.model === models.HCMCReading;
           // Check xem đã tồn tại chưa
           const existing = await district.model.findOne({
-            'current.pollution.ts': airHour.from
+            'current.pollution.ts': airHour.to
           });
 
           if (existing) {
             // Update
-            const reading = convertToDistrictReading(airHour, district);
+            const reading = convertToDistrictReading(airHour, district, isHCMC, hcmcAQI);
             await district.model.updateOne(
               { _id: existing._id },
               { $set: reading }
             );
           } else {
             // Insert new
-            const reading = convertToDistrictReading(airHour, district);
+            const reading = convertToDistrictReading(airHour, district, isHCMC, hcmcAQI);
             await district.model.create(reading);
             totalSaved++;
           }
