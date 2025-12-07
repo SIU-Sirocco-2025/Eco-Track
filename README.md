@@ -519,8 +519,6 @@ node scripts/test-ngsi-ld.js
 - Script dùng [`helpers.checkPythonDeps.ensurePythonDependencies`](helpers/checkPythonDeps.js) để tự động kiểm tra torch/pandas/numpy/sklearn và cài bằng pip nếu thiếu.
 - API dự đoán gọi Python runner: [`helpers.pythonRunner.runPythonScriptWithStdin`](helpers/pythonRunner.js) chạy [`predict_from_json.py`](predict_from_json.py).
 - Tham số mô hình LSTM: thư mục [model_params/](model_params/), ánh xạ trong [`controllers/api/prediction.controller.js`](controllers/api/prediction.controller.js).
-
-### 9) NGSI-LD API (tuỳ chọn)
 - Context: `GET /api/ngsi-ld/context` và file tĩnh [public/context.jsonld](public/context.jsonld)
 - Thực thể và chuyển đổi: [`helpers.ngsiLdConverter`](helpers/ngsiLdConverter.js), controllers: [controllers/api/aqiNgsiLd.controller.js](controllers/api/aqiNgsiLd.controller.js)
 
@@ -544,6 +542,7 @@ pm2 restart ecosystem.config.js
 - `public/` – Tài nguyên tĩnh
 - `scripts/` – Cron, seed, tiện ích
 - `helpers/` – Python runner, kiểm tra deps   
+- `services/` – Dịch vụ nền: đồng bộ AQI, lịch cron, tích hợp OpenAQ, xử lý NGSI‑LD, gửi email, v.v.
 
 ---
 

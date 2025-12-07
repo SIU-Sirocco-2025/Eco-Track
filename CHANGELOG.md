@@ -1,4 +1,25 @@
 # CHANGELOG
+## [v1.1.1](https://github.com/SIU-Sirocco-2025/Eco-Track/releases/tag/v1.1.1) - 2025-12-7
+
+### Added
+- Cụm giao diện tổng quan thành phố và khối khuyến nghị trực tiếp trên bản đồ AQI (city hero, chi tiết giờ gần nhất, overlay nhiệt AQM) hiển thị dựa trên trạm city‑wide ([views/client/pages/home/index.pug](views/client/pages/home/index.pug), [public/client/js/script.js](public/client/js/script.js))
+- Popup chi tiết cho từng trạm/quận trên bản đồ: AQI US, chất ô nhiễm chính, thời tiết hiện tại, thời gian cập nhật và liên kết nhanh tới dữ liệu lịch sử 72h ([public/client/js/script.js](public/client/js/script.js))
+
+### Changed
+- Tinh chỉnh layout bản đồ AQI: statusbar, legend, badge mức AQI, nội dung khuyến nghị và hiệu ứng highlight để dễ đọc trên cả desktop/mobile; tách rõ trạm city‑wide và danh sách trạm quận ([public/client/js/script.js](public/client/js/script.js), [public/client/css/style.css](public/client/css/style.css), [views/client/pages/home/index.pug](views/client/pages/home/index.pug))
+- Cập nhật ví dụ badge AQI và bảng dataset mẫu trong phần giới thiệu/dataset để đồng bộ màu sắc + ngưỡng AQI với legend trên bản đồ ([views/client/pages/docs/index.pug](views/client/pages/docs/index.pug), [views/client/pages/home/about.pug](views/client/pages/home/about.pug), [views/client/mixins/about.pug](views/client/mixins/about.pug))
+
+### Fixed
+- Điều chỉnh lại logic sync AQI:
+  - Chuẩn hoá tính AQI US tổng hợp và main pollutant giữa script đồng bộ OpenAQ thủ công và dịch vụ sync realtime
+  - Giảm trùng lặp và hỗn loạn khi sync nhiều bản ghi cùng `current.pollution.ts` bằng cách dùng tập timestamp đã sync trước đó ([services/aqiSyncService.js](services/aqiSyncService.js), [scripts/sync-openaq-to-districts.js](scripts/sync-openaq-to-districts.js))
+- Cải thiện script kiểm thử/quan sát dữ liệu:
+  - `scripts/print-latest.js` in log gọn hơn, tập trung vào `current.pollution.ts` và `aqius`
+  - `scripts/check-latest-openaq.js` bổ sung log rõ ràng về các bản ghi gần nhất trong [`HCMCAirHour`](models/hcmcAirHour.model.js](models/hcmcAirHour.model.js)) ([scripts/print-latest.js](scripts/print-latest.js), [scripts/check-latest-openaq.js](scripts/check-latest-openaq.js))
+- Sửa một số lỗi hiển thị nhỏ trên bản đồ AQI: căn lề tooltip/popup, cập nhật thời gian đo mới nhất trên statusbar, đồng bộ màu badge với legend trong docs/dataset ([public/client/js/script.js](public/client/js/script.js), [public/client/css/style.css](public/client/css/style.css), [views/client/pages/docs/index.pug](views/client/pages/docs/index.pug), [views/client/pages/home/about.pug](views/client/pages/home/about.pug))
+
+---
+
 ## [v1.1.0](https://github.com/SIU-Sirocco-2025/Eco-Track/releases/tag/v1.1.0) - 2025-12-04
 ### Added
 - Endpoint ngữ cảnh NGSI‑LD và các cải tiến liên quan ([routers/api/ngsiLd.route.js](routers/api/ngsiLd.route.js), [controllers/api/aqiNgsiLd.controller.js](controllers/api/aqiNgsiLd.controller.js), [config/ngsi-ld-context.js](config/ngsi-ld-context.js))
