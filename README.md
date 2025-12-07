@@ -460,6 +460,26 @@ npm start     # production mode
   - API dự đoán: [controllers/api/prediction.controller.js](controllers/api/prediction.controller.js)
   - Docs UI: [views/client/pages/docs/index.pug](views/client/pages/docs/index.pug) → http://localhost:3000/api/docs
 
+### 4.1) Tạo tài khoản Admin đầu tiên
+
+Hệ thống Admin dùng collection `Account` (model: [models/account.model.js](models/account.model.js)).
+
+Có sẵn script tạo admin mặc định: [scripts/create-admin.js](scripts/create-admin.js)
+
+```bash
+# Sau khi đã cấu hình MONGODB_URL và chạy MongoDB
+node scripts/create-admin.js
+```
+
+Script sẽ tạo tài khoản:
+
+- Email: `admin@ecotrack.com`
+- Password: `admin123`
+
+> ⚠️ Lưu ý: đăng nhập vào trang Admin `/admin/auth/login` và **đổi mật khẩu ngay** tại trang Cài đặt Admin: [views/admin/pages/settings/index.pug](views/admin/pages/settings/index.pug).
+>  
+> Giao diện login admin: `http://localhost:3000/admin/auth/login` (router: [routers/admin/index.route.js](routers/admin/index.route.js), controller: [controllers/admin/auth.controller.js](controllers/admin/auth.controller.js)).
+
 ### 5) Seed dữ liệu demo 72h (tuỳ chọn)
 - Nếu bạn chưa cấu hình cron/không có dữ liệu OpenAQ, seed mẫu để kiểm thử UI/API:
 ```bash
