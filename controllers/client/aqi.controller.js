@@ -46,11 +46,11 @@ const CITY_MODEL_MAP = {
   'district9': models.District9Reading,
   'district10': models.District10Reading,
   'district11': models.District11Reading,
-  'binhTan': models.BinhTanReading,
-  'binhThanh': models.BinhThanhReading,
-  'phuNhuan': models.PhuNhuanReading,
-  'tanPhu': models.TanPhuReading,
-  'thuDuc': models.ThuDucReading
+  'binhtan': models.BinhTanReading,
+  'binhthanh': models.BinhThanhReading,
+  'phunhuan': models.PhuNhuanReading,
+  'tanphu': models.TanPhuReading,
+  'thuduc': models.ThuDucReading
 };
 
 // [GET] /aqi
