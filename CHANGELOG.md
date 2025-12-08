@@ -1,4 +1,23 @@
 # CHANGELOG
+
+## [v1.1.2](https://github.com/SIU-Sirocco-2025/Eco-Track/releases/tag/v1.1.2) - 2025-12-08
+
+### Changed
+- Đồng bộ lại danh sách quận/huyện giữa code và tài liệu:
+  - Chuẩn hoá key quận dùng trong API (`hcmc`, `district1`, `district2`, `binhThanh`, `thuDuc`, `tanPhu`, `phuNhuan`, `binhTan`...) theo mapping trong service đồng bộ AQI ([services/aqiSyncService.js](services/aqiSyncService.js), [models/index.js](models/index.js))
+  - Cập nhật bảng “Supported Districts (16 khu vực)” và ví dụ request trong docs để không còn thiếu/dư quận ([views/client/pages/docs/index.pug](views/client/pages/docs/index.pug))
+  - Cập nhật ví dụ seed/prediction để dùng đúng key quận đã hỗ trợ ([scripts/seed-72h-data.js](scripts/seed-72h-data.js), [controllers/api/prediction.controller.js](controllers/api/prediction.controller.js))
+
+### Fixed
+- Sửa lỗi liên kết và nội dung trong API Docs:
+  - Sửa các ví dụ curl dùng sai `cityKey`/`district` (ví dụ `quan1` → `district1`), đồng bộ với routing thật của API ([views/client/pages/docs/index.pug](views/client/pages/docs/index.pug), [public/client/js/docs.js](public/client/js/docs.js))
+  - Sửa lỗi định dạng markdown/link sai trong changelog và docs (ví dụ tham chiếu `HCMCAirHour` bị đóng ngoặc sai) ([CHANGELOG.md](CHANGELOG.md), [README.md](README.md))
+  - Cập nhật lại sample dataset, bảng evaluation và bảng dataset forecast cho khớp với legend AQI, tên quận, và cấu trúc response hiện tại ([views/client/pages/docs/index.pug](views/client/pages/docs/index.pug))
+
+- Sửa lỗi/thiếu sót nội dung trang giới thiệu:
+  - Đồng bộ ví dụ dataset, bảng độ chính xác mô hình theo quận và phần mô tả Dataset với docs API (16 khu vực, tần suất, thông số đo lường) ([views/client/pages/home/about.pug](views/client/pages/home/about.pug), [views/client/mixins/about.pug](views/client/mixins/about.pug))
+  - Cập nhật lại tên quận trong các bảng ví dụ (việt hoá đầy đủ “Bình Thạnh”, “Phú Nhuận”, “Tân Phú”, “Bình Tân”, “Thủ Đức” và tránh trộn lẫn English/Vietnamese) cho thống nhất với hệ thống API và bản đồ
+
 ## [v1.1.1](https://github.com/SIU-Sirocco-2025/Eco-Track/releases/tag/v1.1.1) - 2025-12-7
 
 ### Added
