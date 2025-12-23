@@ -8,7 +8,7 @@ html(lang='vi')
     link(rel='stylesheet', href='https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap')
     link(rel='stylesheet', href='/client/css/docs.css')
     link(rel='stylesheet', href='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css')
-    link(rel="icon" type="image/png" href="/client/image/logo.png" sizes="32x32") 
+    link(rel='icon', type='image/png', href='/client/image/logo.png', sizes='32x32')
   body
     header.docs-header
       .container
@@ -24,7 +24,7 @@ html(lang='vi')
               span Hello, #{currentUser.fullName}
             else
               a.btn-primary(href='/auth/login') Đăng nhập
-    
+
     .docs-layout
       aside.docs-sidebar
         .sidebar-content
@@ -39,7 +39,7 @@ html(lang='vi')
                 a(href='#endpoints') Danh sách Endpoints
               li
                 a(href='#errors') Xử lý lỗi
-          
+
           .sidebar-section
             h3 API Endpoints
             ul
@@ -61,7 +61,7 @@ html(lang='vi')
                 a(href='#hourly-average') Trung bình theo giờ
               li
                 a(href='#latest') Dữ liệu mới nhất
-          
+
           .sidebar-section
             h3 Prediction API
             ul
@@ -73,7 +73,7 @@ html(lang='vi')
                 a(href='#prediction-forecast') Dự đoán 24h
               li
                 a(href='#prediction-districts') Danh sách quận
-          
+
           .sidebar-section
             h3 Quản lý tài khoản
             ul
@@ -81,7 +81,7 @@ html(lang='vi')
                 a(href='#get-api-key') Lấy API Key
               li
                 a(href='#regenerate-api-key') Tạo lại API Key
-          
+
           .sidebar-section
             h3 NGSI-LD API
             ul
@@ -96,27 +96,33 @@ html(lang='vi')
               li
                 a(href='#ngsi-ld-predictions') Predictions
 
+          .sidebar-section
+            h3 Licenses & Legal
+            ul
+              li
+                a(href='#licenses') Licenses & Attribution
+
       main.docs-main
         .docs-content
           section#introduction.docs-section
-            h1 
+            h1
               i.fas.fa-book
               |  API Documentation
             p.lead Chào mừng đến với Eco-Track API - nền tảng cung cấp dữ liệu chất lượng không khí thời gian thực và dự đoán AI cho TP.HCM
-            
-            p 
+
+            p
               | Eco-Track cung cấp 3 loại API chính:
             ul.api-types
               li
-                strong REST API: 
-                | Endpoints chuẩn REST để truy vấn dữ liệu AQI, thống kê, xu hướng
+                strong REST API:
+                |  Endpoints chuẩn REST để truy vấn dữ liệu AQI, thống kê, xu hướng
               li
-                strong Prediction API: 
-                | Dự đoán AQI 24h tới sử dụng mô hình LSTM (Long Short-Term Memory)
+                strong Prediction API:
+                |  Dự đoán AQI 24h tới sử dụng mô hình LSTM (Long Short-Term Memory)
               li
-                strong NGSI-LD API: 
-                | Tuân thủ chuẩn Smart City ETSI cho IoT và Linked Data
-            
+                strong NGSI-LD API:
+                |  Tuân thủ chuẩn Smart City ETSI cho IoT và Linked Data
+
             .info-box
               i.fas.fa-database
               div
@@ -145,7 +151,7 @@ html(lang='vi')
                   | pressure: 1012.8 hPa, wind: 4 m/s
                   br
                   | pollutants: pm1, pm25 (không có pm10, O3, NO2, SO2, CO)
-            
+
             .info-box
               i.fas.fa-brain
               div
@@ -160,27 +166,27 @@ html(lang='vi')
                 | • Độ chính xác: MAE 2-10 điểm, R² 0.85-0.95
                 br
                 | • Dataset huấn luyện: Dữ liệu thực từ các trạm quan trắc
-            
+
             .info-box
               i.fas.fa-info-circle
               div
-                strong API Version: 
-                | v1.1
+                strong API Version:
+                |  v1.1
                 br
-                strong Base URL: 
+                strong Base URL:
                 .base-url-selector.mt-2
                   label(for='baseUrlSelect') Chọn môi trường:
                   select#baseUrlSelect.form-select.d-inline-block.ms-2(style='width: auto;')
                     option(value='http://localhost:3000') Development (localhost:3000)
                     option(value='https://ecotrack.asia') Production (ecotrack.asia)
                   code#currentBaseUrl.ms-2 http://localhost:3000
-          
+
           section#authentication.docs-section
-            h2 
+            h2
               i.fas.fa-key
               |  Xác thực API
             p Hầu hết các endpoint cần API key để truy cập. Có 3 cách để gửi API key:
-            
+
             .auth-methods
               .auth-method
                 h4 1. Header x-api-key
@@ -193,7 +199,7 @@ html(lang='vi')
                     code.language-bash.
                       curl -H "x-api-key: YOUR_API_KEY" \
                         http://localhost:3000/aqi/history/district1
-              
+
               .auth-method
                 h4 2. Authorization Bearer
                 .code-block
@@ -205,7 +211,7 @@ html(lang='vi')
                     code.language-bash.
                       curl -H "Authorization: Bearer YOUR_API_KEY" \
                         http://localhost:3000/aqi/history/district1
-              
+
               .auth-method
                 h4 3. Query Parameter
                 .code-block
@@ -216,18 +222,18 @@ html(lang='vi')
                   pre
                     code.language-bash.
                       curl http://localhost:3000/aqi/history/district1?apiKey=YOUR_API_KEY
-            
+
             .warning-box
               i.fas.fa-exclamation-triangle
               div
-                strong Lưu ý: 
-                | Không chia sẻ API key của bạn công khai. Bạn có thể tạo lại API key mới bất cứ lúc nào trong trang cài đặt.
+                strong Lưu ý:
+                |  Không chia sẻ API key của bạn công khai. Bạn có thể tạo lại API key mới bất cứ lúc nào trong trang cài đặt.
 
           section#endpoints.docs-section
-            h2 
+            h2
               i.fas.fa-list
               |  Danh sách Endpoints
-            
+
             .endpoint-grid
               .endpoint-card
                 .endpoint-icon
@@ -235,49 +241,49 @@ html(lang='vi')
                 span.endpoint-name So sánh quận
                 span.endpoint-path GET /aqi/compare
                 span.endpoint-auth.no-auth Không cần auth
-              
+
               .endpoint-card
                 .endpoint-icon
                   i.fas.fa-history
                 span.endpoint-name Lịch sử 72h
                 span.endpoint-path GET /aqi/history/:cityKey
                 span.endpoint-auth.auth-required Cần API key
-              
+
               .endpoint-card
                 .endpoint-icon
                   i.fas.fa-calendar-alt
                 span.endpoint-name Theo thời gian
                 span.endpoint-path GET /aqi/by-datetime/:cityKey
                 span.endpoint-auth.auth-required Cần API key
-              
+
               .endpoint-card
                 .endpoint-icon
                   i.fas.fa-chart-bar
                 span.endpoint-name Thống kê
                 span.endpoint-path GET /aqi/statistics/:cityKey
                 span.endpoint-auth.auth-required Cần API key
-              
+
               .endpoint-card
                 .endpoint-icon
                   i.fas.fa-chart-line
                 span.endpoint-name Xu hướng
                 span.endpoint-path GET /aqi/trend/:cityKey
                 span.endpoint-auth.auth-required Cần API key
-              
+
               .endpoint-card
                 .endpoint-icon
                   i.fas.fa-filter
                 span.endpoint-name Lọc dữ liệu
                 span.endpoint-path GET /aqi/filter
                 span.endpoint-auth.auth-required Cần API key
-              
+
               .endpoint-card
                 .endpoint-icon
                   i.fas.fa-download
                 span.endpoint-name Export
                 span.endpoint-path GET /aqi/export/:cityKey
                 span.endpoint-auth.auth-required Cần API key
-              
+
               .endpoint-card
                 .endpoint-icon
                   i.fas.fa-clock
@@ -286,17 +292,17 @@ html(lang='vi')
                 span.endpoint-auth.auth-required Cần API key
 
           section#compare.docs-section
-            h2 
+            h2
               i.fas.fa-balance-scale
               |  So sánh AQI giữa các quận
-            
+
             .endpoint-info
               span.http-method.get GET
               code.endpoint-url /aqi/compare
               span.auth-badge.no-auth Không cần API key
-            
+
             p So sánh chất lượng không khí giữa tất cả các quận, tìm quận tốt nhất/xấu nhất.
-            
+
             h4 Request Example
             .code-block
               .code-header
@@ -306,7 +312,7 @@ html(lang='vi')
               pre
                 code.language-bash.
                   curl http://localhost:3000/aqi/compare
-            
+
             h4 Response Example
             .code-block
               .code-header
@@ -335,17 +341,17 @@ html(lang='vi')
                   }
 
           section#history.docs-section
-            h2 
+            h2
               i.fas.fa-history
               |  Lịch sử AQI 72 giờ gần nhất
-            
+
             .endpoint-info
               span.http-method.get GET
               code.endpoint-url /aqi/history/:cityKey
               span.auth-badge.auth Cần API key
-            
+
             p Xem lịch sử dữ liệu AQI trong 72 giờ gần nhất (hoặc custom).
-            
+
             h4 Parameters
             table.params-table
               thead
@@ -364,7 +370,7 @@ html(lang='vi')
                     code limit
                   td Query
                   td Số lượng records (1-168), mặc định: 24
-            
+
             h4 Request Example
             .code-block
               .code-header
@@ -375,7 +381,7 @@ html(lang='vi')
                 code.language-bash.
                   curl -H "x-api-key: YOUR_API_KEY" \
                     "http://localhost:3000/aqi/history/district1?limit=72"
-            
+
             h4 Response Example
             .code-block
               .code-header
@@ -394,17 +400,17 @@ html(lang='vi')
                   }
 
           section#by-datetime.docs-section
-            h2 
+            h2
               i.fas.fa-calendar-alt
               |  Dữ liệu theo ngày giờ cụ thể
-            
+
             .endpoint-info
               span.http-method.get GET
               code.endpoint-url /aqi/by-datetime/:cityKey
               span.auth-badge.auth Cần API key
-            
+
             p Lấy dữ liệu AQI trong khoảng thời gian cụ thể.
-            
+
             h4 Parameters
             table.params-table
               thead
@@ -428,7 +434,7 @@ html(lang='vi')
                     code endDate
                   td Query
                   td Ngày kết thúc (ISO 8601)
-            
+
             h4 Request Example
             .code-block
               .code-header
@@ -441,17 +447,17 @@ html(lang='vi')
                     "http://localhost:3000/aqi/by-datetime/district1?startDate=2025-11-20&endDate=2025-11-22"
 
           section#statistics.docs-section
-            h2 
+            h2
               i.fas.fa-chart-bar
               |  Thống kê AQI
-            
+
             .endpoint-info
               span.http-method.get GET
               code.endpoint-url /aqi/statistics/:cityKey
               span.auth-badge.auth Cần API key
-            
+
             p Thống kê chi tiết: min, max, average, median, phân bố theo level.
-            
+
             h4 Parameters
             table.params-table
               thead
@@ -470,7 +476,7 @@ html(lang='vi')
                     code hours
                   td Query
                   td Số giờ thống kê (1-168), mặc định: 24
-            
+
             h4 Response Example
             .code-block
               .code-header
@@ -493,17 +499,17 @@ html(lang='vi')
                   }
 
           section#trend.docs-section
-            h2 
+            h2
               i.fas.fa-chart-line
               |  Phân tích xu hướng
-            
+
             .endpoint-info
               span.http-method.get GET
               code.endpoint-url /aqi/trend/:cityKey
               span.auth-badge.auth Cần API key
-            
+
             p Phân tích xu hướng AQI đang tăng, giảm hay ổn định.
-            
+
             h4 Response Example
             .code-block
               .code-header
@@ -525,17 +531,17 @@ html(lang='vi')
                   }
 
           section#filter.docs-section
-            h2 
+            h2
               i.fas.fa-filter
               |  Lọc dữ liệu nâng cao
-            
+
             .endpoint-info
               span.http-method.get GET
               code.endpoint-url /aqi/filter
               span.auth-badge.auth Cần API key
-            
+
             p Lọc dữ liệu theo AQI range, nhiệt độ, level.
-            
+
             h4 Parameters
             table.params-table
               thead
@@ -571,17 +577,17 @@ html(lang='vi')
                   td Số records, mặc định: 50
 
           section#export.docs-section
-            h2 
+            h2
               i.fas.fa-download
               |  Export dữ liệu
-            
+
             .endpoint-info
               span.http-method.get GET
               code.endpoint-url /aqi/export/:cityKey
               span.auth-badge.auth Cần API key
-            
+
             p Export dữ liệu ra định dạng CSV hoặc JSON.
-            
+
             h4 Request Examples
             .code-block
               .code-header
@@ -593,35 +599,35 @@ html(lang='vi')
                   # Export CSV
                   curl -H "x-api-key: YOUR_API_KEY" \
                     "http://localhost:3000/aqi/export/district1?format=csv" -o data.csv
-                  
+
                   # Export JSON
                   curl -H "x-api-key: YOUR_API_KEY" \
                     "http://localhost:3000/aqi/export/district1?format=json" -o data.json
 
           section#hourly-average.docs-section
-            h2 
+            h2
               i.fas.fa-clock
               |  Trung bình theo giờ
-            
+
             .endpoint-info
               span.http-method.get GET
               code.endpoint-url /aqi/hourly-average/:cityKey
               span.auth-badge.auth Cần API key
-            
+
             p Tính AQI trung bình cho từng giờ (0-23h).
 
           section#latest.docs-section
-            h2 
+            h2
               i.fas.fa-sync-alt
               |  Dữ liệu mới nhất
-            
+
             .endpoint-info
               span.http-method.get GET
               code.endpoint-url /aqi/latest-reading
               span.auth-badge.no-auth Không cần API key
-            
+
             p Lấy dữ liệu AQI mới nhất của TP.HCM (toàn thành phố).
-            
+
             h4 Request Example
             .code-block
               .code-header
@@ -631,7 +637,7 @@ html(lang='vi')
               pre
                 code.language-bash.
                   curl http://localhost:3000/aqi/latest-reading
-            
+
             h4 Response Example
             .code-block
               .code-header
@@ -664,24 +670,24 @@ html(lang='vi')
                   }
 
           section#prediction-intro.docs-section
-            h2 
+            h2
               i.fas.fa-brain
               |  Prediction API - Dự đoán AQI bằng AI
-            
+
             p Eco-Track sử dụng mô hình LSTM (Long Short-Term Memory) để dự đoán chỉ số AQI trong 24 giờ tới cho từng quận/huyện.
-            
+
             .info-box
               i.fas.fa-info-circle
               div
                 strong Về mô hình LSTM:
                 br
                 | LSTM là một loại mạng neural hồi quy (Recurrent Neural Network) đặc biệt hiệu quả trong việc học và dự đoán các chuỗi dữ liệu thời gian. Mô hình được huấn luyện trên dữ liệu lịch sử AQI từ OpenAQ API.
-            
+
             h3 Đặc điểm mô hình
             ul.feature-list
               li
-                strong Dataset huấn luyện: 
-                | Dữ liệu AQI lịch sử thu thập liên tục mỗi giờ từ các trạm quan trắc OpenAQ
+                strong Dataset huấn luyện:
+                |  Dữ liệu AQI lịch sử thu thập liên tục mỗi giờ từ các trạm quan trắc OpenAQ
               li
                 strong Input features (72 giờ gần nhất):
                 ul
@@ -691,15 +697,15 @@ html(lang='vi')
                   li Nhiệt độ (tp), độ ẩm tương đối (relativehumidity), áp suất (pr)
                   li Tốc độ gió (ws), hướng gió (wd)
               li
-                strong Output: 
-                | 24 giá trị AQI dự đoán cho 24 giờ tiếp theo
+                strong Output:
+                |  24 giá trị AQI dự đoán cho 24 giờ tiếp theo
               li
-                strong Độ chính xác: 
-                | MAE (Mean Absolute Error) từ 2-10 điểm AQI tùy quận
+                strong Độ chính xác:
+                |  MAE (Mean Absolute Error) từ 2-10 điểm AQI tùy quận
               li
-                strong Hỗ trợ: 
-                | 16 khu vực (TP.HCM + 15 quận/huyện)
-            
+                strong Hỗ trợ:
+                |  16 khu vực (TP.HCM + 15 quận/huyện)
+
             h3 Ví dụ Dataset thực tế
             p Dữ liệu thu thập theo giờ với đầy đủ thông tin AQI và thời tiết:
             .code-block
@@ -714,7 +720,7 @@ html(lang='vi')
                   2025-12-04 20:00:00,Quận 7,92,pm25,31.8,70.5,1012.5,3.8
                   2025-11-20 14:00:00,Binh Thanh,145,pm25,29.0,73,1010,3.5
                   2025-11-20 15:00:00,Binh Thanh,153,pm25,28.8,74,1010.2,3.3
-            
+
             p.mt-3
               strong Dataset Coverage:
             ul
@@ -723,7 +729,7 @@ html(lang='vi')
               li Tổng số records: Hàng trăm nghìn điểm dữ liệu
               li Độ đầy đủ: >95% (thiếu dữ liệu được interpolate)
               li Format lưu trữ: MongoDB documents + CSV exports
-            
+
             h3 Quy trình dự đoán
             ol.process-list
               li Lấy 72 giờ dữ liệu AQI gần nhất từ database
@@ -731,10 +737,10 @@ html(lang='vi')
               li Đưa vào mô hình LSTM với tham số từ file JSON tương ứng
               li Model xử lý và sinh 24 giá trị AQI dự đoán
               li Denormalize và trả về kết quả cho client
-            
+
             h3 Độ chính xác Model (Evaluation Results)
             p Kết quả đánh giá độ chính xác trên 10 quận với dữ liệu thực:
-            
+
             table.params-table
               thead
                 tr
@@ -786,35 +792,35 @@ html(lang='vi')
                   td 128.35
                   td 9.94
                   td 91.6%
-            
+
             p
-              strong Trung bình độ chính xác: 
-              | 94.8% (MAE: 6.0 điểm AQI)
+              strong Trung bình độ chính xác:
+              |  94.8% (MAE: 6.0 điểm AQI)
               br
               em Dữ liệu từ evaluation_results.csv - Đánh giá trên dataset thực tháng 11/2025
-            
+
             .warning-box
               i.fas.fa-exclamation-triangle
               div
-                strong Lưu ý: 
-                | Prediction API yêu cầu ít nhất 72 giờ dữ liệu lịch sử trong database. Nếu thiếu dữ liệu, hãy chạy 
+                strong Lưu ý:
+                |  Prediction API yêu cầu ít nhất 72 giờ dữ liệu lịch sử trong database. Nếu thiếu dữ liệu, hãy chạy
                 code scripts/seed-72h-data.js
-                |  hoặc 
+                |  hoặc
                 code scripts/fetch-openaq-hours.js
                 |  để thu thập.
 
           section#prediction-get-data.docs-section
-            h2 
+            h2
               i.fas.fa-database
               |  Lấy dữ liệu 72 giờ cho prediction
-            
+
             .endpoint-info
               span.http-method.get GET
               code.endpoint-url /api/prediction/get-72h-data/:district
               span.auth-badge.no-auth Không cần API key
-            
+
             p Endpoint này trả về 72 giờ dữ liệu AQI gần nhất, được sử dụng làm input cho mô hình LSTM.
-            
+
             h4 Parameters
             table.params-table
               thead
@@ -828,7 +834,7 @@ html(lang='vi')
                     code district
                   td Path
                   td Mã quận (hcmc, district1, district2, binhThanh, thuDuc...)
-            
+
             h4 Request Example
             .code-block
               .code-header
@@ -838,7 +844,7 @@ html(lang='vi')
               pre
                 code.language-bash.
                   curl http://localhost:3000/api/prediction/get-72h-data/district1
-            
+
             h4 Response Example
             .code-block
               .code-header
@@ -871,10 +877,10 @@ html(lang='vi')
                       // ... 71 records tiếp theo
                     ]
                   }
-            
+
             h4 Bảng so sánh: Dữ liệu thực vs Dự đoán (Nov 2025)
             p So sánh giữa dữ liệu thực tế và dự đoán của mô hình LSTM:
-            
+
             table.params-table
               thead
                 tr
@@ -888,70 +894,70 @@ html(lang='vi')
                 tr
                   td 2025-11-18 00:00
                   td Binh Thanh
-                  td 
+                  td
                     span.badge(style='background: #ff7e00; color: white;') 134
-                  td 
+                  td
                     span.badge(style='background: #ff7e00; color: white;') 137
                   td +3
                   td 97.8%
                 tr
                   td 2025-11-18 03:00
                   td Binh Thanh
-                  td 
+                  td
                     span.badge(style='background: #ff7e00; color: white;') 104
-                  td 
+                  td
                     span.badge(style='background: #ff7e00; color: white;') 104
                   td 0
                   td 100%
                 tr
                   td 2025-11-18 06:00
                   td Binh Thanh
-                  td 
+                  td
                     span.badge(style='background: #ffff00; color: black;') 86
-                  td 
+                  td
                     span.badge(style='background: #ffff00; color: black;') 86
                   td 0
                   td 100%
                 tr
                   td 2025-11-18 00:00
                   td District 1
-                  td 
+                  td
                     span.badge(style='background: #ff0000; color: white;') 159
-                  td 
+                  td
                     span.badge(style='background: #ff0000; color: white;') 155
                   td -4
                   td 97.5%
                 tr
                   td 2025-11-18 06:00
                   td District 1
-                  td 
+                  td
                     span.badge(style='background: #ff7e00; color: white;') 145
-                  td 
+                  td
                     span.badge(style='background: #ff0000; color: white;') 160
                   td +15
                   td 89.7%
                 tr
                   td 2025-11-18 12:00
                   td District 1
-                  td 
+                  td
                     span.badge(style='background: #ff0000; color: white;') 169
-                  td 
+                  td
                     span.badge(style='background: #ff0000; color: white;') 171
                   td +2
                   td 98.8%
 
           section#prediction-forecast.docs-section
-            h2 
+            h2
               i.fas.fa-crystal-ball
               |  Dự đoán AQI 24 giờ tới
-            
+
             .endpoint-info
               span.http-method.get GET
               code.endpoint-url /api/prediction/forecast-24h/:district
               span.auth-badge.no-auth Không cần API key
-            
+
             p Endpoint chính để lấy dự đoán AQI cho 24 giờ tiếp theo. Sử dụng mô hình LSTM đã được huấn luyện.
-            
+
             h4 Parameters
             table.params-table
               thead
@@ -965,7 +971,7 @@ html(lang='vi')
                     code district
                   td Path
                   td Mã quận (hcmc, district1, district2, binhThanh, thuDuc...)
-            
+
             h4 Request Example
             .code-block
               .code-header
@@ -975,7 +981,7 @@ html(lang='vi')
               pre
                 code.language-bash.
                   curl http://localhost:3000/api/prediction/forecast-24h/district1
-            
+
             h4 Response Example
             .code-block
               .code-header
@@ -1016,7 +1022,7 @@ html(lang='vi')
                       "trend": "stable"
                     }
                   }
-            
+
             h4 Sample Prediction Data (CSV format)
             p Dữ liệu dự đoán có thể export dạng CSV:
             .code-block
@@ -1033,7 +1039,7 @@ html(lang='vi')
                   2025-11-18 03:00:00,Binh Thanh,104,unhealthy for sensitive
                   2025-11-18 04:00:00,Binh Thanh,107,unhealthy for sensitive
                   2025-11-18 05:00:00,Binh Thanh,87,moderate
-            
+
             h4 Quality Levels
             table.params-table
               thead
@@ -1046,7 +1052,7 @@ html(lang='vi')
                 tr
                   td 0-50
                   td Good
-                  td 
+                  td
                     span.badge(style='background: #1a9e3e; color: white;') Xanh lá
                   td Chất lượng không khí tốt
                 tr
@@ -1081,17 +1087,17 @@ html(lang='vi')
                   td Nguy hiểm
 
           section#prediction-districts.docs-section
-            h2 
+            h2
               i.fas.fa-map-marked-alt
               |  Danh sách Districts hỗ trợ Prediction
-            
+
             .endpoint-info
               span.http-method.get GET
               code.endpoint-url /api/prediction/districts
               span.auth-badge.no-auth Không cần API key
-            
+
             p Lấy danh sách tất cả các quận/huyện được hỗ trợ prediction.
-            
+
             h4 Response Example
             .code-block
               .code-header
@@ -1111,7 +1117,7 @@ html(lang='vi')
                     ],
                     "total": 16
                   }
-            
+
             h4 Supported Districts (16 khu vực)
             .city-keys-grid
               .city-key-item
@@ -1164,18 +1170,18 @@ html(lang='vi')
                 span Thủ Đức
 
           section#get-api-key.docs-section
-            h2 
+            h2
               i.fas.fa-user-shield
               |  Quản lý API Key
-            
+
             h3 Lấy API Key hiện tại
             .endpoint-info
               span.http-method.get GET
               code.endpoint-url /auth/api-key
               span.auth-badge.session Cần đăng nhập
-            
+
             p Lấy thông tin API key của tài khoản đã đăng nhập. Endpoint này yêu cầu session authentication (đăng nhập qua trình duyệt), không phải API key.
-            
+
             h4 Request Example
             .code-block
               .code-header
@@ -1187,7 +1193,7 @@ html(lang='vi')
                   # Cần đăng nhập qua trình duyệt trước
                   curl http://localhost:3000/auth/api-key \
                     -H "Cookie: connect.sid=YOUR_SESSION_COOKIE"
-            
+
             h4 Response Example
             .code-block
               .code-header
@@ -1203,17 +1209,17 @@ html(lang='vi')
                   }
 
           section#regenerate-api-key.docs-section
-            h3 
+            h3
               i.fas.fa-redo
               |  Tạo lại API Key mới
-            
+
             .endpoint-info
               span.http-method.post POST
               code.endpoint-url /auth/api-key/regenerate
               span.auth-badge.session Cần đăng nhập
-            
+
             p Tạo API key mới (key cũ sẽ không còn hoạt động). Endpoint này yêu cầu session authentication.
-            
+
             h4 Request Example
             .code-block
               .code-header
@@ -1225,7 +1231,7 @@ html(lang='vi')
                   # Cần đăng nhập qua trình duyệt trước
                   curl -X POST http://localhost:3000/auth/api-key/regenerate \
                     -H "Cookie: connect.sid=YOUR_SESSION_COOKIE"
-            
+
             h4 Response Example
             .code-block
               .code-header
@@ -1239,34 +1245,34 @@ html(lang='vi')
                     "message": "API key đã được tạo lại thành công",
                     "newApiKey": "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
                   }
-            
+
             .warning-box
               i.fas.fa-exclamation-triangle
               div
                 strong Lưu ý quan trọng:
                 br
-                | • Để lấy hoặc tạo lại API key, bạn cần đăng nhập vào hệ thống qua trang 
+                | • Để lấy hoặc tạo lại API key, bạn cần đăng nhập vào hệ thống qua trang
                 a(href='/auth/login') /auth/login
                 br
-                | • Hoặc truy cập trang Cài đặt: 
+                | • Hoặc truy cập trang Cài đặt:
                 a(href='/auth/settings') /auth/settings
                 br
                 | • API key cũ sẽ ngay lập tức không còn hoạt động sau khi regenerate
 
           section#ngsi-ld-intro.docs-section
-            h2 
+            h2
               i.fas.fa-code-branch
               |  NGSI-LD API
-            
+
             p Eco-Track cung cấp API tuân thủ chuẩn NGSI-LD (ETSI GS CIM 009) để tương thích với các hệ sinh thái Smart City.
-            
+
             .info-box
               i.fas.fa-info-circle
               div
                 strong NGSI-LD là gì?
                 br
                 | NGSI-LD là chuẩn API dựa trên Linked Data cho IoT và Smart Cities, sử dụng JSON-LD để biểu diễn dữ liệu có ngữ cảnh.
-            
+
             .info-box
               i.fas.fa-database
               div
@@ -1295,32 +1301,32 @@ html(lang='vi')
                   li
                     code relativehumidity
                     |  - Độ ẩm tương đối (%)
-          
-            section#ngsi-ld-context.docs-section
-            h2 
+
+          section#ngsi-ld-context.docs-section
+            h2
               i.fas.fa-link
               |  Context Definition
             .info-box.mt-2
               i.fas.fa-file-contract
               div
-                strong License: 
-                | Dữ liệu NGSI‑LD do Eco‑Track xuất bản theo ODC‑BY 1.0 – xem 
+                strong License:
+                |  Dữ liệu NGSI‑LD do Eco‑Track xuất bản theo ODC‑BY 1.0 – xem
                 a(href='/DATA_LICENSE.md', target='_blank') DATA_LICENSE.md
-            
+
             .endpoint-info
               span.http-method.get GET
               code.endpoint-url /api/ngsi-ld/context
               span.auth-badge.no-auth Không cần API key
-             
+
             p
-              | Lấy @context định nghĩa cho tất cả entities của Eco-Track. Ngoài endpoint động ở 
+              | Lấy @context định nghĩa cho tất cả entities của Eco-Track. Ngoài endpoint động ở
               code /api/ngsi-ld/context
-              | , hệ thống cũng phục vụ context tĩnh tại 
+              | , hệ thống cũng phục vụ context tĩnh tại
               code /context.jsonld
-              |  (xem 
+              |  (xem
               a(href='/context.jsonld', target='_blank') public/context.jsonld
               | ).
-            
+
             h4 Request Example
             .code-block
               .code-header
@@ -1330,7 +1336,7 @@ html(lang='vi')
               pre
                 code.language-bash.
                   curl http://localhost:3000/api/ngsi-ld/context
-          
+
             h4 Response Example
             .code-block
               .code-header
@@ -1363,21 +1369,22 @@ html(lang='vi')
                       "location": { "@id": "schema:geo", "@type": "ngsi-ld:GeoProperty" }
                     }
                   }
-          
+
           section#ngsi-ld-entities.docs-section
-            h2 
+            h2
               i.fas.fa-database
               |  Query Entities
-             
+
             .endpoint-info
               span.http-method.get GET
               code.endpoint-url /api/ngsi-ld/entities/:district
               span.auth-badge.no-auth Không cần API key
-             
-            p Lấy entity mới nhất theo chuẩn NGSI-LD cho một quận (type: 
+
+            p
+              | Lấy entity mới nhất theo chuẩn NGSI-LD cho một quận (type:
               code AirQualityObserved
               | ).
-             
+
             h4 Request Example
             .code-block
               .code-header
@@ -1388,7 +1395,7 @@ html(lang='vi')
                 code.language-bash.
                   curl -X GET "https://ecotrack.asia/api/ngsi-ld/entities/district1" \
                     -H "Accept: application/ld+json"
-             
+
             h4 Response Example
             .code-block
               .code-header
@@ -1422,21 +1429,22 @@ html(lang='vi')
                       }
                     }
                   }
-          
+
           section#ngsi-ld-temporal.docs-section
-            h2 
+            h2
               i.fas.fa-clock
               |  Temporal Queries
-            
+
             .endpoint-info
               span.http-method.get GET
               code.endpoint-url /api/ngsi-ld/entities/:district/temporal
               span.auth-badge.no-auth Không cần API key
-            
-            p Truy vấn dữ liệu 
+
+            p
+              | Truy vấn dữ liệu
               code AirQualityObserved
               |  theo khoảng thời gian (dateObserved).
-            
+
             h4 Parameters
             table.param-table
               thead
@@ -1460,7 +1468,7 @@ html(lang='vi')
                     code limit
                   td Query
                   td Số lượng records (mặc định: 24)
-            
+
             h4 Request Example
             .code-block
               .code-header
@@ -1518,12 +1526,12 @@ html(lang='vi')
                   }
 
           section#errors.docs-section
-            h2 
+            h2
               i.fas.fa-exclamation-circle
               |  Xử lý lỗi
-            
+
             p API sử dụng các HTTP status code chuẩn:
-            
+
             table.params-table
               thead
                 tr
@@ -1554,6 +1562,205 @@ html(lang='vi')
                   td
                     code 500
                   td Internal Server Error
+
+          section#licenses.docs-section
+            h2
+              i.fas.fa-balance-scale
+              |  Licenses & Attribution
+
+            p Eco-Track sử dụng nhiều thành phần nguồn mở với các giấy phép khác nhau. Dưới đây là thông tin chi tiết về licenses:
+
+            h3
+              i.fas.fa-code
+              |  Software License
+            .info-box
+              i.fas.fa-file-contract
+              div
+                strong GNU General Public License v3.0 (GPL-3.0)
+                br
+                | Mã nguồn Eco-Track được phát hành theo giấy phép
+                a(href='https://www.gnu.org/licenses/gpl-3.0.html', target='_blank') GPL-3.0
+                | . Xem chi tiết tại
+                a(href='https://github.com/SIU-Sirocco-2025/Eco-Track/blob/main/LICENSE', target='_blank') LICENSE
+                br
+                br
+                strong Điều khoản chính:
+                ul.mt-2
+                  li Bạn có thể sử dụng, sửa đổi và phân phối lại phần mềm
+                  li Phải công khai mã nguồn khi phân phối
+                  li Phải giữ nguyên giấy phép GPL-3.0
+                  li KHÔNG CÓ BẢO HÀNH (NO WARRANTY)
+
+            h3
+              i.fas.fa-database
+              |  Data License
+            .info-box
+              i.fas.fa-creative-commons
+              div
+                strong Creative Commons Attribution 4.0 (CC BY 4.0)
+                br
+                | Dữ liệu AQI và NGSI-LD entities được cấp phép theo
+                a(href='https://creativecommons.org/licenses/by/4.0/', target='_blank') CC BY 4.0
+                | . Xem chi tiết tại
+                a(href='https://github.com/SIU-Sirocco-2025/Eco-Track/blob/main/DATA_LICENSE.md', target='_blank') DATA_LICENSE.md
+                br
+                br
+                strong Yêu cầu ghi công:
+                br
+                | Khi sử dụng dữ liệu từ Eco-Track, bạn BẮT BUỘC ghi công như sau:
+                .code-block.mt-2
+                  pre
+                    code.
+                      Dữ liệu được tổng hợp bởi dự án Eco-Track –
+                      Hệ thống Theo Dõi & Dự Đoán Chất Lượng Không Khí TP.HCM
+                      https://github.com/SIU-Sirocco-2025/Eco-Track
+                      Cấp phép dữ liệu: CC BY 4.0
+
+            h3
+              i.fas.fa-cloud-download-alt
+              |  Data Sources & Attribution
+
+            .warning-box
+              i.fas.fa-info-circle
+              div
+                strong Nguồn dữ liệu bên thứ ba:
+                br
+                | Dữ liệu gốc từ các nguồn mở bên dưới vẫn chịu giấy phép riêng của từng dự án. Eco-Track chỉ thu thập, chuẩn hóa và tái tổ chức dữ liệu.
+
+            table.params-table
+              thead
+                tr
+                  th Nguồn
+                  th Nội dung
+                  th Giấy phép
+                  th Ghi chú
+              tbody
+                tr
+                  td
+                    a(href='https://docs.openaq.org/', target='_blank') OpenAQ API v3
+                  td Dữ liệu AQI thời gian thực
+                  td Xem điều khoản tại OpenAQ
+                  td
+                    | Thu thập qua
+                    a(href='https://github.com/SIU-Sirocco-2025/Eco-Track/blob/main/scripts/fetch-openaq-hours.js', target='_blank') fetch-openaq-hours.js
+                tr
+                  td
+                    a(href='https://www.openstreetmap.org/copyright', target='_blank') OpenStreetMap
+                  td Bản đồ nền
+                  td
+                    a(href='https://www.openstreetmap.org/copyright', target='_blank') ODbL 1.0
+                  td Tiles từ nhà cung cấp bên thứ ba
+                tr
+                  td
+                    a(href='https://smartdatamodels.org/', target='_blank') FIWARE Smart Data Models
+                  td Mô hình dữ liệu
+                  td Xem trang chủ
+                  td NGSI-LD context mapping
+                tr
+                  td
+                    a(href='https://www.w3.org/TR/vocab-ssn/', target='_blank') W3C SOSA/SSN
+                  td Ontology
+                  td W3C standards
+                  td Semantic annotations
+
+            h3
+              i.fas.fa-book
+              |  Dependencies Licenses
+
+            p
+              | Eco-Track sử dụng nhiều thư viện nguồn mở. Danh sách đầy đủ và giấy phép của từng thư viện xem tại:
+              a(href='https://github.com/SIU-Sirocco-2025/Eco-Track/blob/main/DEPENDENCIES_LICENSES.md', target='_blank') DEPENDENCIES_LICENSES.md
+
+            h4 Node.js Dependencies (Backend)
+            .code-block
+              .code-header
+                span.language Một số thư viện chính
+              pre
+                code.
+                  • express (MIT) - Web framework
+                  • mongoose (MIT) - MongoDB ODM
+                  • passport (MIT) - Authentication
+                  • dotenv (BSD-2-Clause) - Environment variables
+                  • nodemailer (MIT) - Email service
+                  • json2csv (MIT) - CSV export
+
+            h4 Python Dependencies (AI/ML)
+            .code-block
+              .code-header
+                span.language Thư viện ML/AI
+              pre
+                code.
+                  • PyTorch (BSD-3-Clause) - Deep learning framework
+                  • NumPy (BSD-3-Clause) - Numerical computing
+                  • Pandas (BSD-3-Clause) - Data analysis
+                  • scikit-learn (BSD-3-Clause) - Machine learning tools
+
+            h4 Frontend Libraries (CDN)
+            .code-block
+              .code-header
+                span.language UI Libraries
+              pre
+                code.
+                  • Bootstrap 5 (MIT) - UI framework
+                  • Leaflet.js (BSD-2-Clause) - Interactive maps
+                  • Chart.js (MIT) - Data visualization
+                  • Font Awesome (CC BY 4.0 / MIT) - Icons
+                  • Highlight.js (BSD-3-Clause) - Code highlighting
+
+            h3
+              i.fas.fa-shield-alt
+              |  Disclaimer
+
+            .warning-box
+              i.fas.fa-exclamation-triangle
+              div
+                strong Miễn trừ trách nhiệm:
+                br
+                br
+                | • Dữ liệu và phần mềm được cung cấp "NGUYÊN TRẠNG" (AS IS)
+                br
+                | • KHÔNG CÓ BẤT KỲ BẢO HÀNH NÀO (NO WARRANTY)
+                br
+                | • Người dùng tự chịu trách nhiệm khi sử dụng
+                br
+                | • Xem điều khoản đầy đủ trong
+                a(href='https://github.com/SIU-Sirocco-2025/Eco-Track/blob/main/LICENSE', target='_blank') LICENSE
+                |  và
+                a(href='https://github.com/SIU-Sirocco-2025/Eco-Track/blob/main/DATA_LICENSE.md', target='_blank') DATA_LICENSE.md
+
+            h3
+              i.fas.fa-handshake
+              |  Contributing
+
+            p
+              | Eco-Track là dự án mã nguồn mở. Chúng tôi hoan nghênh mọi đóng góp!
+
+            ul.feature-list
+              li Fork repository trên GitHub
+              li Tạo Pull Request với tính năng mới
+              li
+                | Báo cáo lỗi qua
+                a(href='https://github.com/SIU-Sirocco-2025/Eco-Track/issues', target='_blank') Issues
+              li
+                | Đọc hướng dẫn chi tiết tại
+                a(href='https://github.com/SIU-Sirocco-2025/Eco-Track/blob/main/CONTRIBUTING.md', target='_blank') CONTRIBUTING.md
+
+            .info-box.mt-3
+              i.fas.fa-link
+              div
+                strong Tài nguyên tham khảo:
+                br
+                ul.mt-2
+                  li
+                    a(href='https://github.com/SIU-Sirocco-2025/Eco-Track', target='_blank') GitHub Repository
+                  li
+                    a(href='https://github.com/SIU-Sirocco-2025/Eco-Track/blob/main/README.md', target='_blank') README.md
+                  li
+                    a(href='https://github.com/SIU-Sirocco-2025/Eco-Track/blob/main/CHANGELOG.md', target='_blank') CHANGELOG.md
+                  li
+                    a(href='https://github.com/SIU-Sirocco-2025/Eco-Track/blob/main/ROADMAP.md', target='_blank') ROADMAP.md
+                  li
+                    a(href='https://github.com/SIU-Sirocco-2025/Eco-Track/blob/main/SECURITY.md', target='_blank') SECURITY.md
 
     footer.docs-footer
       .container
