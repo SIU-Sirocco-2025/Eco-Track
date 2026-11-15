@@ -40,6 +40,11 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
 //Flash message
+if (process.env.SIROCCO_OIDC_ISSUER) {
+    const { createReviewRouter } = require('./integrations/sirocco/review-routes');
+    app.use('/sirocco/review', createReviewRouter(process.env));
+    app.locals.siroccoReviewEnabled = true;
+}
 app.use(cookieParser('afasdhgwerw'));
 app.use(session({
   secret: process.env.SESSION_SECRET || 'change_this_secret', 

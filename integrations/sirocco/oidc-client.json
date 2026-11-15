@@ -1,0 +1,8 @@
+{
+  "schema": "sirocco.oidc-client@1",
+  "clientId": "ecotrack-review",
+  "name": "EcoTrack — xác minh nguồn",
+  "redirectUris": ["http://localhost:18085/sirocco/review/callback"],
+  "roles": ["ecotrack-reviewer"],
+  "roleClaim": "ecotrack_roles"
+}

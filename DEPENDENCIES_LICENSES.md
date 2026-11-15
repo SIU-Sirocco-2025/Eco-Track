@@ -25,7 +25,8 @@ Xem thêm cấu hình đầy đủ trong [`package.json`](package.json).
 | morgan | ^1.x | MIT | https://github.com/expressjs/morgan |
 | cookie-parser | ^1.x | MIT | https://github.com/expressjs/cookie-parser |
 | express-session | ^1.x | MIT | https://github.com/expressjs/session |
-| connect-mongo | ^5.x | MIT | https://github.com/jdesboeufs/connect-mongo |
+| connect-mongo | 6.0.0 | MIT | https://github.com/jdesboeufs/connect-mongo |
+| openid-client | 6.9.0 | MIT | https://github.com/panva/openid-client |
 | passport | ^0.6.x | MIT | http://www.passportjs.org/ |
 | passport-google-oauth20 | ^2.x | MIT | https://github.com/jaredhanson/passport-google-oauth2 |
 | pug | ^3.x | MIT | https://pugjs.org/ |

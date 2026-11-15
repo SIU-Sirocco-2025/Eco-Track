@@ -17,6 +17,10 @@ database.connect();
 const { HCMCAirHour } = require('../models');
 
 const API_BASE = process.env.OPENAQ_API_BASE || 'https://api.openaq.org/v3';
+const sourceBase = new URL(API_BASE);
+if (sourceBase.username || sourceBase.password || sourceBase.search || sourceBase.hash) {
+  throw new Error('OPENAQ_API_BASE không được chứa credential, query hoặc fragment.');
+}
 const API_KEY = process.env.OPENAQ_API_KEY;
 const CRON_EXPR = process.env.OPENAQ_FETCH_INTERVAL || '0 * * * *'; // mỗi giờ phút 00
 
@@ -36,20 +40,7 @@ AX.interceptors.request.use(cfg => {
 // Tránh chồng lấn job
 let isRunning = false;
 
-// Chuẩn hóa một record trả về
-function cleanRecord(raw) {
-  const p = raw.parameter || {};
-  const period = raw.period || {};
-  const fromLocal = period?.datetimeFrom?.local;
-  const toLocal = period?.datetimeTo?.local;
-  return {
-    parameter: p.name || p.key || p.displayName || p.parameter || raw.parameter?.name || 'unknown',
-    value: raw.value,
-    unit: p.units || raw.parameter?.units,
-    from: fromLocal,
-    to: toLocal
-  };
-}
+const { cleanRecord, aggregateByHour } = require('../services/openaqRecords');
 
 // Lấy giờ từ một sensor
 async function fetchSensorHours(sensorId, fromUtcISO, toUtcISO) {
@@ -65,52 +56,9 @@ async function fetchSensorHours(sensorId, fromUtcISO, toUtcISO) {
     return [];
   }
   const results = res.data?.results || [];
-  return results.map(r => ({ sensorId, raw: r, cleaned: cleanRecord(r) }));
-}
-
-// Gom theo giờ (key = cleaned.from)
-function aggregateByHour(allRecords) {
-  const buckets = new Map();
-
-  for (const rec of allRecords) {
-    const c = rec.cleaned;
-    if (!c.from || !c.to) continue; // thiếu dữ liệu
-    const key = c.from; // from local (ví dụ '2025-11-20T09:00:00+07:00')
-    if (!buckets.has(key)) {
-      buckets.set(key, {
-        fromLocal: c.from,
-        toLocal: c.to,
-        raw: [],
-        measurements: {}
-      });
-    }
-    const bucket = buckets.get(key);
-    // Nếu parameter đã tồn tại thì giữ bản đầu (hoặc có thể ghi đè tuỳ chiến lược)
-    if (!bucket.measurements[c.parameter]) {
-      bucket.measurements[c.parameter] = c;
-    }
-    bucket.raw.push(rec.raw);
-  }
-
-  // Chuyển thành docs để upsert
-  const docs = [];
-  for (const [fromLocal, data] of buckets.entries()) {
-    // Chuyển fromLocal -> UTC Date (parse bằng moment)
-    const fromUtc = moment(fromLocal).utc().toDate();
-    const toUtc = moment(data.toLocal).utc().toDate();
-
-    docs.push({
-      from: fromUtc,
-      to: toUtc,
-      window: {
-        fromLocal: data.fromLocal,
-        toLocal: data.toLocal
-      },
-      measurements: data.measurements,
-      raw: data.raw
-    });
-  }
-  return docs;
+  const collectedAt = new Date().toISOString();
+  const sourceEndpoint = API_BASE.replace(/\/$/, '') + url;
+  return results.map(r => ({ sensorId, raw: r, cleaned: cleanRecord(r), collectedAt, sourceEndpoint, provider: 'openaq', mode: 'observed' }));
 }
 
 // Lấy mốc bắt đầu (last saved hour)

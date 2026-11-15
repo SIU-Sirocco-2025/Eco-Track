@@ -1,7 +1,9 @@
 <div align="center">
   <img src="public/client/image/logo.png" alt="Eco-Track Logo" width="200"/>
 
-  # Eco-Track 🌿
+# Eco-Track 🌿
+
+Tích hợp nền tảng: [Kết nối Sirocco Core](integrations/sirocco/README.md) mô tả cách giữ nguồn quan trắc, gửi workflow/tệp bằng credential riêng và đối soát kết quả về MongoDB. Phần tích hợp này có CLI backend; SSO và giao diện xác minh là các bước phát triển tiếp theo.
   ### Hệ Thống Theo Dõi & Dự Đoán Chất Lượng Không Khí TP.HCM
 
   > "Theo dõi hôm nay để bảo vệ bầu trời ngày mai."

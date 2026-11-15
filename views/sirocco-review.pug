@@ -1,0 +1,64 @@
+//- SPDX-License-Identifier: GPL-3.0-or-later
+doctype html
+html(lang="vi")
+  head
+    meta(charset="utf-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1")
+    title Xác minh nguồn · EcoTrack
+    link(rel="stylesheet" href="/client/css/sirocco-review.css")
+  body
+    header
+      nav(aria-label="Điều hướng")
+        a.brand(href="/") EcoTrack
+        a(href=root) Việc xác minh
+        if csrf
+          form(action=root + '/logout' method="post")
+            input(type="hidden" name="csrf" value=csrf)
+            button.secondary(type="submit") Đăng xuất EcoTrack
+    main
+      h1 Xác minh nguồn quan trắc
+      - const labels = { active: 'Chờ xác minh', verified: 'Đã xác minh', rejected: 'Đã từ chối' }
+      - const modes = { observed: 'Quan trắc', replay: 'Phát lại', synthetic: 'Dữ liệu kiểm thử' }
+      if error
+        p.error(role="alert")= error
+        a(href=root) Về danh sách xác minh
+      else if item
+        p.status= labels[item.status]
+        dl
+          dt Số đo
+          dd= source.parameter + ' · ' + source.value + ' ' + source.unit
+          dt Cảm biến
+          dd= source.sensorId
+          dt Loại dữ liệu
+          dd= modes[source.mode] || source.mode
+          dt Cửa sổ đo (UTC)
+          dd= source.from + ' – ' + source.to
+          dt Thời điểm thu (UTC)
+          dd= source.collectedAt
+          dt Tuổi dữ liệu khi thu
+          dd= Math.max(0, Math.floor(source.ageAtCollectionSeconds / 60)) + ' phút sau khi kết thúc cửa sổ đo'
+          dt Nguồn
+          dd= source.sourceEndpoint || 'Bản ghi kiểm thử'
+          dt SHA-256 của bản ghi
+          dd.digest= item.snapshotHash
+        if item.status === 'active'
+          form.decision(action=root + '/' + item._id method="post")
+            input(type="hidden" name="csrf" value=csrf)
+            if item.completion
+              p Đang chờ đối soát quyết định đã gửi.
+              button(type="submit" name="decision" value=item.completion.decision) Gửi lại cùng quyết định
+            else
+              button(type="submit" name="decision" value="verified") Xác minh nguồn
+              button.secondary(type="submit" name="decision" value="rejected") Từ chối nguồn
+      else if items
+        if items.length
+          ul
+            each row in items
+              li
+                a(href=root + '/' + row._id)= row.variables.parameter + ' · Cảm biến ' + row.variables.sensorId
+                span.status= labels[row.status]
+        else
+          p Bạn chưa được giao bản ghi nào.
+      else
+        p Đăng nhập để xem và xử lý các bản ghi được giao cho bạn.
+        a.action(href=root + '/login') Đăng nhập với Sirocco

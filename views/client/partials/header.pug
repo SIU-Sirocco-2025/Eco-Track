@@ -22,6 +22,9 @@ header.site-header
             a.nav-link(href='/aqi') Chất lượng không khí
           li.nav-item
             a.nav-link(href='/about') Giới thiệu
+          if siroccoReviewEnabled
+            li.nav-item
+              a.nav-link(href='/sirocco/review') Xác minh nguồn
           li.nav-item
             a.nav-link(href='/api/docs', target='_blank')
               i.bi.bi-book.me-1

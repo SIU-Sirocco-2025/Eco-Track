@@ -1,0 +1,9 @@
+{
+  "schema": "sirocco.integration@1",
+  "id": "ecotrack-2025",
+  "name": "EcoTrack 2025 — xác minh nguồn quan trắc",
+  "version": "1.0.0",
+  "contractVersion": "2.0",
+  "requiredScopes": ["workflow.read", "workflow.start", "workflow.complete", "objects.read", "objects.write", "objects.promote"],
+  "workflow": "source-review.bpmn20.xml"
+}

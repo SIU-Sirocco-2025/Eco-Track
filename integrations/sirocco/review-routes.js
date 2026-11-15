@@ -1,0 +1,171 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+const express = require('express');
+const session = require('express-session');
+const mongoose = require('mongoose');
+const { MongoStore } = require('connect-mongo');
+const { createHash, randomBytes, timingSafeEqual } = require('node:crypto');
+const { Connector } = require('./client');
+const { complete } = require('./outbox');
+
+const root = '/sirocco/review';
+const cookieName = 'ecotrack.review';
+const randomToken = () => randomBytes(32).toString('hex');
+const sessionCall = (req, method) => new Promise((resolve, reject) => {
+  req.session[method](error => error ? reject(error) : resolve());
+});
+
+function trustedUrl(value, originOnly = false) {
+  const url = new URL(value);
+  const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+  if ((url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback)) ||
+      url.username || url.password || url.search || url.hash || (originOnly && url.pathname !== '/')) {
+    throw new Error('URL SSO không hợp lệ');
+  }
+  return url;
+}
+
+function createReviewRouter(env) {
+  const router = express.Router();
+  const issuer = trustedUrl(env.SIROCCO_OIDC_ISSUER);
+  const origin = trustedUrl(env.SIROCCO_REVIEW_ORIGIN, true);
+  const callback = origin.origin + root + '/callback';
+  const { SIROCCO_OIDC_CLIENT_ID: clientId, SIROCCO_OIDC_CLIENT_SECRET: clientSecret,
+    SIROCCO_REVIEW_SESSION_SECRET: secret } = env;
+  if (!clientId || !clientSecret || !secret || secret.length < 32) throw new Error('Thiếu cấu hình SSO EcoTrack');
+  const connector = new Connector({ url: env.CORE_API_URL, token: env.CORE_CONNECTOR_TOKEN });
+  const secure = origin.protocol === 'https:';
+  const cookies = { path: root, httpOnly: true, secure, sameSite: 'lax' };
+  const collection = () => mongoose.connection.db.collection('sirocco_outbox');
+  const store = MongoStore.create({
+    clientPromise: mongoose.connection.asPromise().then(connection => connection.getClient()),
+    collectionName: 'sirocco_review_sessions',
+    ttl: 15 * 60,
+    autoRemove: 'native',
+  });
+  store.on('error', () => console.error('EcoTrack review: SESSION_STORE_UNAVAILABLE'));
+  let discovery;
+  async function provider() {
+    const oidc = await import('openid-client');
+    discovery ??= oidc.discovery(issuer, clientId, clientSecret, undefined, {
+      execute: [oidc.enableNonRepudiationChecks, ...(issuer.protocol === 'http:' ? [oidc.allowInsecureRequests] : [])],
+    }).catch(error => { discovery = undefined; throw error; });
+    return { oidc, config: await discovery };
+  }
+  router.use((req, res, next) => {
+    res.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer',
+      'Content-Security-Policy': "default-src 'none'; style-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'" });
+    next();
+  });
+  router.use(session({ name: cookieName, secret, store, resave: false, saveUninitialized: false,
+    cookie: { ...cookies, maxAge: 15 * 60_000 } }));
+  const render = (res, locals = {}, status = 200) => res.status(status).render('sirocco-review', { root, ...locals });
+
+  router.get('/login', async (req, res) => {
+    const { oidc, config } = await provider();
+    const verifier = oidc.randomPKCECodeVerifier();
+    const state = oidc.randomState();
+    const nonce = oidc.randomNonce();
+    req.session.login = { verifier, state, nonce, expires: Date.now() + 5 * 60_000 };
+    const url = oidc.buildAuthorizationUrl(config, {
+      scope: 'openid', redirect_uri: callback, state, nonce,
+      code_challenge_method: 'S256', code_challenge: await oidc.calculatePKCECodeChallenge(verifier),
+    });
+    await sessionCall(req, 'save');
+    res.redirect(url.href);
+  });
+  router.get('/callback', async (req, res) => {
+    const login = req.session.login;
+    if (!login || login.expires <= Date.now() || req.query.state !== login.state) {
+      return render(res, { error: 'Phiên đăng nhập không hợp lệ. Hãy bắt đầu lại.' }, 400);
+    }
+    delete req.session.login;
+    await sessionCall(req, 'save');
+    const { oidc, config } = await provider();
+    const url = new URL(callback);
+    url.search = req.originalUrl.split('?').slice(1).join('?');
+    let claims;
+    try {
+      const tokens = await oidc.authorizationCodeGrant(config, url, {
+        expectedState: login.state, expectedNonce: login.nonce, pkceCodeVerifier: login.verifier, idTokenExpected: true,
+      });
+      claims = tokens.claims();
+    } catch {
+      return render(res, { error: 'Không xác nhận được phiên Keycloak. Hãy thử đăng nhập lại.' }, 401);
+    }
+    if (typeof claims?.sub !== 'string' || !claims.sub || !Number.isFinite(claims.exp) ||
+        !Array.isArray(claims.ecotrack_roles) || !claims.ecotrack_roles.includes('ecotrack-reviewer')) {
+      await sessionCall(req, 'destroy');
+      res.clearCookie(cookieName, cookies);
+      return render(res, { error: 'Tài khoản chưa được cấp quyền xác minh EcoTrack.' }, 403);
+    }
+    await sessionCall(req, 'regenerate');
+    req.session.reviewer = { sub: claims.sub, expires: Math.min(claims.exp * 1000, Date.now() + 5 * 60_000) };
+    req.session.csrf = randomToken();
+    await sessionCall(req, 'save');
+    res.redirect(root);
+  });
+
+  router.use(express.urlencoded({ extended: false, limit: '2kb' }));
+  const actor = req => req.session.reviewer?.expires > Date.now() ? req.session.reviewer.sub : undefined;
+  function csrf(req, res, next) {
+    const expected = req.session.csrf, received = req.body?.csrf;
+    if (!actor(req) || typeof expected !== 'string' || typeof received !== 'string' ||
+        Buffer.byteLength(expected) !== Buffer.byteLength(received) ||
+        !timingSafeEqual(Buffer.from(expected), Buffer.from(received))) {
+      return render(res, { error: 'Phiên thao tác đã hết hạn hoặc yêu cầu không hợp lệ.' }, 403);
+    }
+    next();
+  }
+  router.post('/logout', csrf, async (req, res) => {
+    await sessionCall(req, 'destroy');
+    res.clearCookie(cookieName, cookies);
+    res.redirect(303, root);
+  });
+  router.get('/', async (req, res) => {
+    const reviewer = actor(req);
+    if (!reviewer) return render(res);
+    const items = await collection().find({ reviewer, status: { $in: ['active', 'verified', 'rejected'] } },
+      { projection: { status: 1, variables: 1 } }).sort({ createdAt: -1 }).limit(30).toArray();
+    render(res, { items, csrf: req.session.csrf });
+  });
+  function owned(req) {
+    if (!actor(req) || !/^[a-f0-9]{64}$/.test(req.params.id)) return null;
+    return collection().findOne({ _id: req.params.id, reviewer: actor(req),
+      status: { $in: ['active', 'verified', 'rejected'] } });
+  }
+  async function evidence(item) {
+    const bytes = await connector.request('/objects', undefined, { 'X-Core-Object': item.objectKey, 'X-Core-Clean': 'true' }, true);
+    if (createHash('sha256').update(bytes).digest('hex') !== item.snapshotHash) throw new Error('Checksum sai');
+    return JSON.parse(bytes.toString('utf8'));
+  }
+  router.get('/:id', async (req, res) => {
+    if (!actor(req)) return res.redirect(root);
+    const item = await owned(req);
+    if (!item) return render(res, { error: 'Không tìm thấy việc xác minh được giao cho bạn.' }, 404);
+    render(res, { item, source: await evidence(item), csrf: req.session.csrf });
+  });
+  router.post('/:id', csrf, async (req, res) => {
+    const item = await owned(req);
+    if (!item) return render(res, { error: 'Không tìm thấy việc xác minh được giao cho bạn.' }, 404);
+    const { decision } = req.body;
+    if (!['verified', 'rejected'].includes(decision)) return render(res, { error: 'Hãy chọn kết quả xác minh.' }, 400);
+    await evidence(item);
+    try {
+      await complete(collection(), connector, item._id, actor(req), decision);
+    } catch (error) {
+      if (error.code === 'OUTBOX_COMPLETION_CONFLICT') {
+        return render(res, { error: 'Công việc đã có quyết định khác. Mở lại để xem trạng thái.' }, 409);
+      }
+      throw error;
+    }
+    res.redirect(303, root + '/' + item._id);
+  });
+  router.use((error, req, res, next) => {
+    if (res.headersSent) return next(error);
+    console.error('EcoTrack review:', error.code || error.name);
+    render(res, { error: 'Chưa xác nhận được kết quả. Mở lại công việc và gửi lại cùng quyết định nếu cần.' }, 503);
+  });
+  return router;
+}
+
+module.exports = { createReviewRouter };

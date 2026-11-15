@@ -25,7 +25,9 @@ const HourSchema = new Schema(
     measurements: { type: Schema.Types.Mixed },
 
     // Mảng raw (các record gốc đã trả về từ từng sensor cho giờ đó)
-    raw: { type: Array, select: false }
+    raw: { type: Array, select: false },
+    // Nguồn theo sensor cho tích hợp; bản cũ không có trường này không được tự gán nguồn.
+    sourceRecords: { type: Array, select: false }
   },
   {
     collection: 'hcmc_air_hours',
