@@ -143,6 +143,40 @@ async function main() {
     assert.equal((await collection.findOne({ _id: id })).snapshotText, originalSnapshot);
     await assert.rejects(enqueueHour(collection, { ...hour, sourceRecords: [] }, config), { code: 'SOURCE_PROVENANCE_MISSING' });
     passed.push('source-revision-keeps-separate-process', 'legacy-without-provenance-rejected');
+    for (const [step, endpoint, value] of [['upload', '/objects', 50.5], ['promote', '/objects/promote', 51.5]]) {
+      const input = JSON.parse(JSON.stringify(revisedHour));
+      input.sourceRecords[0].raw.value = value;
+      const [pending] = await enqueueHour(collection, input, config);
+      let lostReceipt;
+      const lostFileResponse = {
+        clientId: client.clientId,
+        workflow: (...args) => client.workflow(...args),
+        request: async (...args) => {
+          const response = await client.request(...args);
+          if (args[0] === endpoint && args[1] !== undefined) {
+            if (step === 'promote') lostReceipt = response;
+            throw new ConnectorError('CONNECTOR_UNAVAILABLE', undefined, true);
+          }
+          return response;
+        },
+      };
+      const interrupted = await dispatch(collection, lostFileResponse, pending.id);
+      assert.equal(interrupted.status, 'retry');
+      const beforeRetry = await collection.findOne({ _id: pending.id });
+      assert.equal((await client.request('/operations/' + beforeRetry.operations[step])).state, 'applied');
+      assert.equal((await client.workflow({ operation: 'processes.find', businessKey: beforeRetry.businessKey })).data.length, 0);
+      await collection.updateOne({ _id: pending.id }, { $set: { nextAttemptAt: new Date(0) } });
+      const retryChild = spawnSync(process.execPath, [path.join(__dirname, '../integrations/sirocco/cli.js'), 'drain'], {
+        env: process.env, encoding: 'utf8', windowsHide: true, timeout: 180000,
+      });
+      assert.equal(retryChild.status, 0, retryChild.stderr);
+      const resumed = await collection.findOne({ _id: pending.id });
+      assert.equal(resumed.status, 'active', resumed.lastError);
+      assert.equal((await client.workflow({ operation: 'processes.find', businessKey: resumed.businessKey })).data.length, 1);
+      if (lostReceipt) assert.equal(resumed.steps.receipt.id, lostReceipt.id);
+      reports.push(await complete(collection, client, pending.id, config.reviewer, 'verified'));
+      passed.push('lost-' + step + '-response-recovered-by-new-node-process');
+    }
     const result = { status: 'passed', dataMode: 'synthetic', checks: passed, records: reports,
       limitations: ['Chưa lấy OpenAQ live.', 'Mất response và scanner từ chối được tiêm tại adapter; đường thành công dùng Core và ClamAV thật, CLI retry chạy trong process Node mới.',
         'CLI complete là thao tác vận hành kỹ thuật với actor khai báo, chưa phải SSO/UI người dùng.', 'Không thay đổi SchoolOps.'], completedAt: new Date().toISOString() };
