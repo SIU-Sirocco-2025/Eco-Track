@@ -11,6 +11,27 @@ function fixture(sensorId = 900000001) {
   return { sensorId, provider: 'openaq', mode: 'synthetic', collectedAt: '2025-11-20T01:02:00Z', raw, cleaned: cleanRecord(raw) };
 }
 const config = { definitionId: 'review:1:abc', reviewer: 'fixture-reviewer' };
+
+test('chuẩn hóa giờ giữ cùng thời điểm UTC và measurements/raw của dữ liệu local cũ', () => {
+  const moment = require('moment');
+  const record = fixture();
+  record.raw.period = {
+    datetimeFrom: { local: '2025-11-20T07:00:00+07:00', utc: '2025-11-20T00:00:00Z' },
+    datetimeTo: { local: '2025-11-20T08:00:00+07:00', utc: '2025-11-20T01:00:00Z' },
+  };
+  record.cleaned = cleanRecord(record.raw);
+  const [hour] = aggregateByHour([record]);
+  assert.equal(hour.from.getTime(), moment(record.cleaned.from).utc().toDate().getTime());
+  assert.equal(hour.to.getTime(), moment(record.cleaned.to).utc().toDate().getTime());
+  assert.deepEqual(hour.measurements, { pm25: record.cleaned });
+  assert.deepEqual(hour.raw, [record.raw]);
+  const legacy = { ...hour, sourceRecords: undefined };
+  const Hour = require('../models/hcmcAirHour.model');
+  const hydrated = Hour.hydrate(legacy);
+  assert.equal(hydrated.from.getTime(), hour.from.getTime());
+  assert.deepEqual(hydrated.measurements, hour.measurements);
+  assert.deepEqual(hydrated.raw, hour.raw);
+});
 test('collector giữ hai sensor cùng parameter và raw mà không đổi measurements cũ', () => {
   const a = fixture(), b = fixture(900000002); b.raw.value = 14; b.cleaned = cleanRecord(b.raw);
   const [hour] = aggregateByHour([a,b]);
