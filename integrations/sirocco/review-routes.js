@@ -6,6 +6,7 @@ const { MongoStore } = require('connect-mongo');
 const { createHash, randomBytes, timingSafeEqual } = require('node:crypto');
 const { Connector } = require('./client');
 const { complete } = require('./outbox');
+const { performAction } = require('./review-actions');
 
 const root = '/sirocco/review';
 const cookieName = 'ecotrack.review';
@@ -105,7 +106,7 @@ function createReviewRouter(env) {
     res.redirect(root);
   });
 
-  router.use(express.urlencoded({ extended: false, limit: '2kb' }));
+  router.use(express.urlencoded({ extended: false, limit: '16kb' }));
   const actor = req => req.session.reviewer?.expires > Date.now() ? req.session.reviewer.sub : undefined;
   function csrf(req, res, next) {
     const expected = req.session.csrf, received = req.body?.csrf;
@@ -124,13 +125,15 @@ function createReviewRouter(env) {
   router.get('/', async (req, res) => {
     const reviewer = actor(req);
     if (!reviewer) return render(res);
-    const items = await collection().find({ reviewer, status: { $in: ['active', 'verified', 'rejected'] } },
-      { projection: { status: 1, variables: 1 } }).sort({ createdAt: -1 }).limit(30).toArray();
-    render(res, { items, csrf: req.session.csrf });
+    const filter = { $or: [{ reviewer }, { reviewVersion: 2, supplementer: reviewer }], status: { $in: ['active', 'verified', 'rejected'] } };
+    if (['active', 'verified', 'rejected'].includes(req.query.status)) filter.status = req.query.status;
+    const items = await collection().find(filter,
+      { projection: { status: 1, variables: 1, reviewState: 1, reviewReason: 1 } }).sort({ createdAt: -1 }).limit(30).toArray();
+    render(res, { items, selectedStatus: req.query.status, csrf: req.session.csrf });
   });
   function owned(req) {
     if (!actor(req) || !/^[a-f0-9]{64}$/.test(req.params.id)) return null;
-    return collection().findOne({ _id: req.params.id, reviewer: actor(req),
+    return collection().findOne({ _id: req.params.id, $or: [{ reviewer: actor(req) }, { reviewVersion: 2, supplementer: actor(req) }],
       status: { $in: ['active', 'verified', 'rejected'] } });
   }
   async function evidence(item) {
@@ -142,12 +145,39 @@ function createReviewRouter(env) {
     if (!actor(req)) return res.redirect(root);
     const item = await owned(req);
     if (!item) return render(res, { error: 'Không tìm thấy việc xác minh được giao cho bạn.' }, 404);
-    render(res, { item, source: await evidence(item), csrf: req.session.csrf });
+    let task, pending;
+    if (item.reviewVersion === 2 && item.status === 'active') {
+      pending = item.pendingAction && item.actions?.[item.pendingAction];
+      if (!pending) {
+        const tasks = await connector.workflow({ operation: 'tasks.list', processId: item.steps.processId });
+        task = tasks.data?.find(t => t.assignee === actor(req));
+      }
+    }
+    render(res, { item, task, pending, canRetry: pending?.actor === actor(req), source: await evidence(item), csrf: req.session.csrf });
   });
   router.post('/:id', csrf, async (req, res) => {
     const item = await owned(req);
     if (!item) return render(res, { error: 'Không tìm thấy việc xác minh được giao cho bạn.' }, 404);
     const { decision } = req.body;
+    if (item.reviewVersion === 2) {
+      await evidence(item);
+      try {
+        await performAction(collection(), connector, item._id, { actor: actor(req), taskId: req.body.taskId,
+          action: decision, reason: req.body.reason, revision: req.body.revision, snapshotHash: req.body.snapshotHash,
+          obsoleteAck: req.body.obsoleteAck === 'true' });
+      } catch (error) {
+        const messages = { REVIEW_REVISION_CONFLICT: 'Số đo đã thay đổi. Mở lại nguồn và tạo việc cho phiên bản mới trước khi kết luận.',
+          REVIEW_SOURCE_MISSING: 'Nguồn không còn khả dụng. Mở lại hồ sơ để xử lý phiên bản cũ.',
+          REVIEW_NOT_ACTIVE: 'Hồ sơ đã kết thúc. Mở lại để xem quyết định đã lưu.',
+          REVIEW_ACTION_INVALID: 'Thao tác không phù hợp với trạng thái hiện tại của hồ sơ.',
+          REVIEW_ACTION_CONFLICT: 'Tác vụ đã có yêu cầu khác. Mở lại để xem kết quả.',
+          REVIEW_ACTION_PENDING: 'Yêu cầu trước đang chờ đối soát. Người đã gửi cần mở lại hồ sơ và gửi lại cùng yêu cầu.',
+          REVIEW_REASON_REQUIRED: 'Hãy nhập lý do từ 5 đến 2000 ký tự.', REVIEW_TASK_FORBIDDEN: 'Bạn không được giao bước xử lý này.' };
+        if (messages[error.code]) return render(res, { error: messages[error.code] }, error.code === 'REVIEW_REASON_REQUIRED' ? 400 : 409);
+        throw error;
+      }
+      return res.redirect(303, root + '/' + item._id);
+    }
     if (!['verified', 'rejected'].includes(decision)) return render(res, { error: 'Hãy chọn kết quả xác minh.' }, 400);
     await evidence(item);
     try {

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:flowable="http://flowable.org/bpmn" targetNamespace="urn:ecotrack:review-v2">
+  <process id="ecotrack-observation-review-v2" name="Xác minh quan trắc có bổ sung" isExecutable="true">
+    <startEvent id="start"/>
+    <sequenceFlow id="begin" sourceRef="start" targetRef="review"/>
+    <userTask id="review" name="Xem số đo và kết luận" flowable:assignee="${reviewer}"/>
+    <sequenceFlow id="choose" sourceRef="review" targetRef="decision"/>
+    <exclusiveGateway id="decision" default="finish"/>
+    <sequenceFlow id="ask" sourceRef="decision" targetRef="supplement">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${needsSupplement == true}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="finish" sourceRef="decision" targetRef="end"/>
+    <userTask id="supplement" name="Bổ sung thông tin xác minh" flowable:assignee="${supplementer}"/>
+    <sequenceFlow id="return" sourceRef="supplement" targetRef="review"/>
+    <endEvent id="end"/>
+  </process>
+</definitions>

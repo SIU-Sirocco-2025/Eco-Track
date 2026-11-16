@@ -77,6 +77,9 @@ async function runOnce() {
   }
   isRunning = true;
   try {
+    if (process.env.SIROCCO_REVIEW_RULE) {
+      await require('../integrations/sirocco/review-rules').replayPendingReviews(HCMCAirHour.db.db, process.env);
+    }
     if (!API_KEY) {
       console.error('Thiếu OPENAQ_API_KEY trong .env');
       return;
@@ -109,11 +112,14 @@ async function runOnce() {
     const hourDocs = aggregateByHour(allRecords);
     for (const doc of hourDocs) {
       // Upsert theo to (UTC) để tránh trùng
-      await HCMCAirHour.findOneAndUpdate(
+      const savedHour = await HCMCAirHour.findOneAndUpdate(
         { to: doc.to },
-        doc,
+        { ...doc, ...(process.env.SIROCCO_REVIEW_RULE ? { sourceReviewPending: true } : {}) },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
+      if (process.env.SIROCCO_REVIEW_RULE) {
+        await require('../integrations/sirocco/review-rules').replayPendingReviews(HCMCAirHour.db.db, process.env);
+      }
       const pm25 = doc.measurements.pm25?.value;
       console.log(`[SAVE] hour to=${doc.window.toLocal} pm25=${pm25 ?? 'N/A'}`);
     }

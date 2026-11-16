@@ -24,6 +24,26 @@ html(lang="vi")
         a(href=root) Về danh sách xác minh
       else if item
         p.status= labels[item.status]
+        if item.reviewVersion === 2
+          p= item.reviewState === 'awaiting_supplement' ? 'Đang chờ người được giao bổ sung thông tin.' : 'Người xác minh xem dữ liệu và ghi rõ lý do xử lý.'
+          h2 Lý do cần xác minh
+          p= item.reviewReason
+          p= 'Quy tắc: ' + item.ruleVersion
+          if item.reviewState === 'source_changed'
+            p(role="alert") Nguồn đã thay đổi trước khi nhận quyết định. Yêu cầu chưa được gửi tới Core. Người vận hành cần tạo việc từ phiên bản nguồn mới; hồ sơ này giữ nguyên để xem lại.
+          if item.actions && Object.keys(item.actions).length
+            h2 Nội dung trao đổi
+            ol
+              each entry in Object.values(item.actions).sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+                li
+                  p= ({ request_supplement: 'Yêu cầu bổ sung', submit_supplement: 'Thông tin bổ sung', verified: 'Xác minh', rejected: 'Từ chối' })[entry.action]
+                  p= entry.reason
+                  small= entry.rejectedBeforeDispatch ? 'Chưa gửi: phiên bản nguồn đã thay đổi' : entry.appliedAt ? 'Đã ghi nhận lúc ' + entry.appliedAt : 'Đang chờ đối soát'
+          if item.rejectedActionHistory && item.rejectedActionHistory.length
+            h2 Yêu cầu cũ chưa được gửi
+            each entry in item.rejectedActionHistory
+              p= entry.reason
+              p Nguồn đã thay đổi trước khi nhận yêu cầu này. Nội dung được giữ để đối chiếu với quyết định sau đó.
         dl
           dt Số đo
           dd= source.parameter + ' · ' + source.value + ' ' + source.unit
@@ -41,7 +61,43 @@ html(lang="vi")
           dd= source.sourceEndpoint || 'Bản ghi kiểm thử'
           dt SHA-256 của bản ghi
           dd.digest= item.snapshotHash
-        if item.status === 'active'
+        if item.reviewVersion === 2 && pending
+          p(role="status") Yêu cầu trước đang chờ đối soát. Chưa thể xử lý bước kế tiếp.
+          p= 'Nội dung đã gửi: ' + pending.reason
+          if canRetry
+            form.decision(action=root + '/' + item._id method="post")
+              input(type="hidden" name="csrf" value=csrf)
+              input(type="hidden" name="taskId" value=pending.taskId)
+              input(type="hidden" name="revision" value=pending.revision)
+              input(type="hidden" name="snapshotHash" value=pending.snapshotHash)
+              input(type="hidden" name="reason" value=pending.reason)
+              if pending.obsoleteAck
+                input(type="hidden" name="obsoleteAck" value="true")
+              button(type="submit" name="decision" value=pending.action) Gửi lại yêu cầu đang chờ
+        else if item.reviewVersion === 2 && task
+          form.decision(action=root + '/' + item._id method="post")
+            input(type="hidden" name="csrf" value=csrf)
+            input(type="hidden" name="taskId" value=task.id)
+            input(type="hidden" name="revision" value=item.revision)
+            input(type="hidden" name="snapshotHash" value=item.snapshotHash)
+            label(for="review-reason") Lý do hoặc thông tin bổ sung
+            textarea#review-reason(name="reason" required minlength="5" maxlength="2000" rows="4")
+            p Bạn đang xử lý phiên bản số đo hiển thị ở trên. Kết quả chỉ áp dụng cho phiên bản này.
+            if item.reviewState === 'source_changed'
+              label
+                input(type="checkbox" name="obsoleteAck" value="true" required)
+                | Tôi xác nhận đang xử lý phiên bản nguồn cũ, không xác minh số đo mới.
+              if task.taskDefinitionKey === 'supplement'
+                button(type="submit" name="decision" value="submit_supplement") Báo nguồn đã thay đổi cho người xác minh
+              else
+                button(type="submit" name="decision" value="rejected") Từ chối phiên bản nguồn đã thay đổi
+            else if task.taskDefinitionKey === 'supplement'
+              button(type="submit" name="decision" value="submit_supplement") Gửi thông tin bổ sung
+            else
+              button(type="submit" name="decision" value="verified") Xác minh nguồn
+              button.secondary(type="submit" name="decision" value="request_supplement") Yêu cầu bổ sung
+              button.secondary(type="submit" name="decision" value="rejected") Từ chối nguồn
+        else if item.reviewVersion !== 2 && item.status === 'active'
           form.decision(action=root + '/' + item._id method="post")
             input(type="hidden" name="csrf" value=csrf)
             if item.completion
@@ -51,12 +107,22 @@ html(lang="vi")
               button(type="submit" name="decision" value="verified") Xác minh nguồn
               button.secondary(type="submit" name="decision" value="rejected") Từ chối nguồn
       else if items
+        form(action=root method="get")
+          label(for="status-filter") Trạng thái công việc
+          select#status-filter(name="status")
+            option(value="") Tất cả
+            option(value="active" selected=selectedStatus === 'active') Đang xử lý
+            option(value="verified" selected=selectedStatus === 'verified') Đã xác minh
+            option(value="rejected" selected=selectedStatus === 'rejected') Đã từ chối
+          button.secondary(type="submit") Lọc công việc
         if items.length
           ul
             each row in items
               li
                 a(href=root + '/' + row._id)= row.variables.parameter + ' · Cảm biến ' + row.variables.sensorId
                 span.status= labels[row.status]
+                if row.reviewState
+                  span= ({awaiting_review: ' · Chờ người xác minh', awaiting_supplement: ' · Chờ bổ sung', source_changed: ' · Nguồn đã thay đổi'})[row.reviewState]
         else
           p Bạn chưa được giao bản ghi nào.
       else

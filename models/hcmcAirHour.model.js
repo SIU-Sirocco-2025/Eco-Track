@@ -27,7 +27,8 @@ const HourSchema = new Schema(
     // Mảng raw (các record gốc đã trả về từ từng sensor cho giờ đó)
     raw: { type: Array, select: false },
     // Nguồn theo sensor cho tích hợp; bản cũ không có trường này không được tự gán nguồn.
-    sourceRecords: { type: Array, select: false }
+    sourceRecords: { type: Array, select: false },
+    sourceReviewPending: { type: Boolean, default: false }
   },
   {
     collection: 'hcmc_air_hours',
