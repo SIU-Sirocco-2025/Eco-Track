@@ -76,4 +76,38 @@ test('không tự gán nguồn OpenAQ cho API mirror hoặc cửa sổ đo chưa
   assert.equal(observation(observed, hour).snapshot.sourceEndpoint, observed.sourceEndpoint);
   assert.throws(() => observation({ ...observed, collectedAt: '2025-11-20T00:30:00Z' }, hour), { code: 'SOURCE_WINDOW_INCOMPLETE' });
 });
+test('CLI enqueue-review giữ phiên MongoDB đến khi yêu cầu đã được ghi', {
+  skip: !process.env.SIROCCO_OIDC_TEST_DATABASE_URL, timeout: 20000,
+}, async () => {
+  const { randomUUID } = require('node:crypto');
+  const { execFileSync } = require('node:child_process');
+  const { resolve } = require('node:path');
+  const mongoose = require('mongoose');
+  const Hour = require('../models/hcmcAirHour.model');
+  const url = new URL(process.env.SIROCCO_OIDC_TEST_DATABASE_URL);
+  assert.ok(['localhost', '127.0.0.1'].includes(url.hostname));
+  assert.equal(url.pathname, '/ecotrack_oidc_tests');
+  url.pathname = '/ecotrack_cli_test_' + randomUUID().replaceAll('-', '');
+  await mongoose.connect(url.href, { serverSelectionTimeoutMS: 5000 });
+  try {
+    const record = fixture();
+    const [hour] = aggregateByHour([record]);
+    const source = await Hour.create(hour);
+    const [first, second] = [1, 2].map(() => JSON.parse(execFileSync(process.execPath,
+      [resolve(__dirname, '../integrations/sirocco/cli.js'), 'enqueue-review', source.id, String(record.sensorId), 'Cần kiểm chứng nguồn'], {
+        cwd: resolve(__dirname, '..'), encoding: 'utf8', timeout: 7000, windowsHide: true,
+        env: { ...process.env, MONGODB_URL: url.href, CORE_API_URL: 'http://127.0.0.1:1/api/core/connector',
+          CORE_CONNECTOR_TOKEN: 'synthetic-cli-token'.repeat(3), SIROCCO_REVIEW_DEFINITION_ID: config.definitionId,
+          SIROCCO_REVIEWER_ID: config.reviewer, SIROCCO_SUPPLEMENTER_ID: 'fixture-supplementer', SIROCCO_RULE_VERSION: 'fixture-v2' },
+      })));
+    assert.equal(first.status, 'pending');
+    assert.equal(second.id, first.id);
+    const box = mongoose.connection.db.collection('sirocco_outbox');
+    assert.equal(await box.countDocuments(), 1);
+    assert.equal((await box.findOne({ _id: first.id })).reviewVersion, 2);
+  } finally {
+    await mongoose.connection.dropDatabase();
+    await mongoose.disconnect();
+  }
+});
 module.exports = { fixture };

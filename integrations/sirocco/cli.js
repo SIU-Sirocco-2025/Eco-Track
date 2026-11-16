@@ -40,7 +40,7 @@ async function main() {
       const hour = await Hour.findById(args[0]).select('+sourceRecords').lean();
       const record = hour?.sourceRecords?.find(r => r.sensorId === Number(args[1]));
       if (!record) fail('SOURCE_PROVENANCE_MISSING');
-      return require('./review-actions').enqueueReview(collection, hour, record, {
+      return await require('./review-actions').enqueueReview(collection, hour, record, {
         definitionId: process.env.SIROCCO_REVIEW_DEFINITION_ID, reviewer: process.env.SIROCCO_REVIEWER_ID,
         supplementer: process.env.SIROCCO_SUPPLEMENTER_ID, ruleVersion: process.env.SIROCCO_RULE_VERSION, reason: args[2] });
     }
