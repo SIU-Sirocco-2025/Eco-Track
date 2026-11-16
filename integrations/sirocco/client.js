@@ -1,7 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 const manifest = require('./manifest.json');
 class ConnectorError extends Error {
-  constructor(code, status, retryable = false) { super(code); this.code = code; this.status = status; this.retryable = retryable; }
+  constructor(code, status, retryable = false, retryAfterMs = 0) {
+    super(code);
+    Object.assign(this, { code, status, retryable, retryAfterMs });
+  }
+}
+function retryAfter(value, now = Date.now()) {
+  if (!value) return 0;
+  const delay = /^\d+$/.test(value) ? Number(value) * 1000 : Date.parse(value) - now;
+  return Number.isFinite(delay) ? Math.min(8640000000000000 - now, Math.max(0, delay)) : 0;
 }
 class Connector {
   constructor({ url, token, clientId = manifest.id, deploy = false, timeout = 45000 }) {
@@ -27,7 +35,8 @@ class Connector {
       if (!result.ok) {
         let code = `CONNECTOR_HTTP_${result.status}`;
         try { const data = await result.json(); if (/^[A-Z][A-Z0-9_]{0,79}$/.test(data.error?.code)) code = data.error.code; } catch {}
-        throw new ConnectorError(code, result.status, result.status === 429 || result.status >= 500);
+        throw new ConnectorError(code, result.status, [408, 429, 500, 502, 503, 504].includes(result.status),
+          retryAfter(result.headers.get('retry-after')));
       }
       return binary ? Buffer.from(await result.arrayBuffer()) : await result.json();
     } catch (error) {

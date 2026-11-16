@@ -46,6 +46,10 @@ async function enqueueHour(collection, hour, config) {
 function summary(item) {
   if (!item) return null;
   return { id: item._id, sourceKey: item.sourceKey, revision: item.revision, status: item.status,
+    lastHttpStatus: item.lastHttpStatus, lastAttemptAt: item.lastAttemptAt, nextAttemptAt: item.nextAttemptAt,
+    rateLimitUntil: item.rateLimitUntil,
+    recovery: item.recovery && { lastAt: item.recovery.lastAt, nextAt: item.recovery.nextAt,
+      attempts: item.recovery.attempts, blocked: item.recovery.blocked, code: item.recovery.code },
     processId: item.steps.processId, objectKey: item.objectKey, snapshotHash: item.snapshotHash,
     receipt: item.steps.receipt, attempts: item.attempts, lastError: item.lastError,
     completion: item.completion, result: item.result };
@@ -68,6 +72,8 @@ async function dispatch(collection, client, id, now = new Date()) {
     if (!result.matchedCount) throw new ConnectorError('OUTBOX_LEASE_LOST', undefined, true);
   }
   try {
+    if (item.attempts > 10 || (item.retryWindowStartedAt && +now >= +item.retryWindowStartedAt + 86400000))
+      fail('OUTBOX_RETRY_BUDGET_EXHAUSTED');
     if (client.clientId !== item.clientId) fail('CONNECTOR_CLIENT_MISMATCH');
     const bytes = Buffer.from(item.snapshotText);
     if (hash(item.snapshotText) !== item.snapshotHash) fail('OUTBOX_PAYLOAD_CORRUPT');
@@ -91,13 +97,23 @@ async function dispatch(collection, client, id, now = new Date()) {
       processId = process.id;
       await checkpoint({ 'steps.processId': processId });
     }
-    await checkpoint({ status: 'active', lastError: null });
+    await checkpoint({ status: 'active', lastError: null, lastHttpStatus: null, rateLimitUntil: null, lastAttemptAt: new Date() });
   } catch (error) {
-    const code = /^[A-Z][A-Z0-9_]{0,79}$/.test(error.code || '') ? error.code : 'OUTBOX_UNEXPECTED_ERROR';
-    const retry = Boolean(error.retryable) && item.attempts < 10;
+    const mongoUnavailable = ['MongoNetworkError', 'MongoNetworkTimeoutError', 'MongoServerSelectionError'].includes(error.name);
+    const code = mongoUnavailable ? 'OUTBOX_DATABASE_UNAVAILABLE' :
+      /^[A-Z][A-Z0-9_]{0,79}$/.test(error.code || '') ? error.code : 'OUTBOX_UNEXPECTED_ERROR';
+    const failedAt = Date.now();
+    const backoff = Math.min(900000, 1000 * 2 ** Math.min(item.attempts, 9));
+    const delay = Math.max(error.retryAfterMs || 0, Math.floor(backoff * (1 + Math.random() / 4)));
+    const nextAttempt = failedAt + delay;
+    const retryWindowStartedAt = item.retryWindowStartedAt ?? new Date(failedAt);
+    const retry = (mongoUnavailable || error.retryable) && item.attempts < 10 &&
+      nextAttempt <= +retryWindowStartedAt + 86400000;
     await collection.updateOne({ _id: id, leaseId }, { $set: {
       status: retry ? 'retry' : 'blocked', lastError: code,
-      nextAttemptAt: new Date(now.getTime() + Math.min(900000, 1000 * 2 ** Math.min(item.attempts, 9))),
+      retryWindowStartedAt,
+      lastHttpStatus: error.status ?? null, lastAttemptAt: new Date(failedAt), nextAttemptAt: retry ? new Date(nextAttempt) : null,
+      rateLimitUntil: error.status === 429 ? new Date(nextAttempt) : null,
     } });
   } finally {
     await collection.updateOne({ _id: id, leaseId }, { $unset: { leaseId: '', leaseUntil: '' } });
@@ -117,7 +133,7 @@ async function reconcileCompletion(collection, client, id) {
   await collection.updateOne({ _id: id, 'completion.taskId': item.completion.taskId }, { $set: {
     status: item.completion.decision, result: { decision: item.completion.decision, reportedActor: item.completion.actor,
       processId: item.steps.processId, taskId: item.completion.taskId, reconciledAt: new Date().toISOString() },
-  } });
+  }, $unset: { recovery: '' } });
   return summary(await collection.findOne({ _id: id }));
 }
 async function complete(collection, client, id, actor, decision) {

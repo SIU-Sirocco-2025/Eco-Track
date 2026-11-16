@@ -4,17 +4,18 @@ const path = require('node:path');
 const mongoose = require('mongoose');
 const { Connector } = require('./client');
 const { hash, fail } = require('./source');
-const { initOutbox, enqueueHour, dispatch, complete, reconcileCompletion, summary } = require('./outbox');
+const { initOutbox, enqueueHour, complete, reconcileCompletion, summary } = require('./outbox');
+const { drainReady, runWorker, sharedCooldown } = require('./worker');
 require('dotenv').config({ quiet: true });
 async function main() {
   const [command, ...args] = process.argv.slice(2);
   if (command === '--help' && args.length === 0) return {
-    commands: ['check', 'install', 'install-review', 'enqueue-review MONGO_HOUR_ID SENSOR_ID REASON', 'enqueue MONGO_HOUR_ID', 'drain', 'metrics', 'status EVENT_ID',
+    commands: ['check', 'install', 'install-review', 'enqueue-review MONGO_HOUR_ID SENSOR_ID REASON', 'enqueue MONGO_HOUR_ID', 'drain', 'worker', 'metrics', 'status EVENT_ID',
       'complete EVENT_ID REVIEWER_ID verified|rejected', 'reconcile EVENT_ID', 'retry EVENT_ID'],
     environment: ['CORE_API_URL', 'CORE_CONNECTOR_TOKEN', 'MONGODB_URL', 'SIROCCO_DEFINITION_ID', 'SIROCCO_REVIEWER_ID'],
     guide: 'integrations/sirocco/README.md',
   };
-  const counts = { check: 0, install: 0, 'install-review': 0, 'enqueue-review': 3, enqueue: 1, drain: 0, metrics: 0, status: 1, complete: 3, reconcile: 1, retry: 1 };
+  const counts = { check: 0, install: 0, 'install-review': 0, 'enqueue-review': 3, enqueue: 1, drain: 0, worker: 0, metrics: 0, status: 1, complete: 3, reconcile: 1, retry: 1 };
   if (!(command in counts) || args.length !== counts[command]) fail('USAGE_CHECK_INSTALL_ENQUEUE_DRAIN_STATUS_COMPLETE_RECONCILE_RETRY');
   const client = new Connector({ url: process.env.CORE_API_URL, token: process.env.CORE_CONNECTOR_TOKEN, deploy: ['install', 'install-review'].includes(command) });
   if (command === 'check') {
@@ -32,6 +33,7 @@ async function main() {
   await mongoose.connect(process.env.MONGODB_URL, { serverSelectionTimeoutMS: 5000 });
   try {
     const collection = await initOutbox(mongoose.connection.db);
+    const cooldown = sharedCooldown(mongoose.connection.db.collection('sirocco_connector_cooldowns'), client);
     if (command === 'enqueue-review') {
       if (!mongoose.isObjectIdOrHexString(args[0]) || !/^\d+$/.test(args[1])) fail('SOURCE_DOCUMENT_ID_INVALID');
       const Hour = require('../../models/hcmcAirHour.model');
@@ -62,18 +64,33 @@ async function main() {
       return await enqueueHour(collection, hour, { definitionId: process.env.SIROCCO_DEFINITION_ID, reviewer: process.env.SIROCCO_REVIEWER_ID });
     }
     if (command === 'drain') {
-      const items = await collection.find({ status: { $in: ['pending', 'retry'] }, nextAttemptAt: { $lte: new Date() } }).sort({ createdAt: 1 }).limit(20).toArray();
-      const results = [];
-      for (const item of items) results.push(await dispatch(collection, client, item._id));
+      const results = await drainReady(collection, client, 20, cooldown);
       if (results.some(result => ['blocked', 'retry'].includes(result.status))) process.exitCode = 2;
       return results;
+    }
+    if (command === 'worker') {
+      const controller = new AbortController();
+      const stop = () => controller.abort();
+      process.once('SIGINT', stop);
+      process.once('SIGTERM', stop);
+      try { await runWorker(collection, client, controller.signal, 3000, cooldown); }
+      finally {
+        process.off('SIGINT', stop);
+        process.off('SIGTERM', stop);
+      }
+      return { status: 'stopped' };
     }
     if (command === 'status') return summary(await collection.findOne({ _id: args[0] }));
     if (command === 'complete') return await complete(collection, client, ...args);
     if (command === 'reconcile') return await reconcileCompletion(collection, client, args[0]);
     if (command === 'retry') {
-      await collection.updateOne({ _id: args[0], status: { $in: ['retry', 'blocked'] }, leaseId: { $exists: false } },
-        { $set: { status: 'pending', nextAttemptAt: new Date(0), attempts: 0 } });
+      const now = new Date();
+      await collection.updateOne({ _id: args[0], status: { $in: ['retry', 'blocked'] },
+        $or: [{ leaseUntil: { $exists: false } }, { leaseUntil: { $lte: now } }] },
+        { $set: { status: 'pending', nextAttemptAt: new Date(0), attempts: 0, retryWindowStartedAt: new Date() } });
+      await collection.updateOne({ _id: args[0], status: 'active', 'recovery.blocked': true,
+        $or: [{ 'recovery.until': { $exists: false } }, { 'recovery.until': { $lte: now } }] },
+        { $unset: { recovery: '' } });
       return summary(await collection.findOne({ _id: args[0] }));
     }
   } finally { await mongoose.disconnect(); }

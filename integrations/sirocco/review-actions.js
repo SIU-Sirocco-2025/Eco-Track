@@ -104,7 +104,7 @@ async function reconcileAction(collection, client, id, taskId) {
       snapshotHash: intent.snapshotHash, obsoleteAck: intent.obsoleteAck, reportedActor: intent.actor, taskId, processId: item.steps.processId };
   } else patch.reviewState = intent.obsoleteAck ? 'source_changed' : intent.nextTask === 'review' ? 'awaiting_review' : 'awaiting_supplement';
   // Chỉ một action đang chờ được phép cập nhật state; retry action cũ không quay lùi hồ sơ.
-  const applied = await collection.updateOne({ _id: id, pendingAction: taskId }, { $set: patch, $unset: { pendingAction: '' } });
+  const applied = await collection.updateOne({ _id: id, pendingAction: taskId }, { $set: patch, $unset: { pendingAction: '', recovery: '' } });
   const current = await collection.findOne({ _id: id });
   if (!applied.matchedCount && !current?.actions?.[taskId]?.appliedAt) fail('REVIEW_ACTION_UNCONFIRMED');
   return current;

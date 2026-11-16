@@ -63,6 +63,12 @@ html(lang="vi")
           dd.digest= item.snapshotHash
         if item.reviewVersion === 2 && pending
           p(role="status") Yêu cầu trước đang chờ đối soát. Chưa thể xử lý bước kế tiếp.
+          if item.recovery && item.recovery.lastAt
+            p= 'Lần thử gần nhất lúc ' + new Date(item.recovery.lastAt).toISOString()
+            if item.recovery.blocked
+              p Đã dừng tự thử lại. Người đã gửi có thể mở hồ sơ và gửi lại.
+            else if item.recovery.nextAt
+              p= 'Lần thử tiếp theo từ ' + new Date(item.recovery.nextAt).toISOString()
           p= 'Nội dung đã gửi: ' + pending.reason
           if canRetry
             form.decision(action=root + '/' + item._id method="post")

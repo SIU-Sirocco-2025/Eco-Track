@@ -34,6 +34,16 @@ Các mốc trong ví dụ chỉ minh họa cách tạo việc. Người phụ tr
 
 Yêu cầu được ghi bền trước khi gọi Core. Khi chưa đối soát được kết quả, người đã gửi mở lại hồ sơ và chọn **Gửi lại yêu cầu đang chờ**. Nội dung gửi lại giữ nguyên; người ở bước sau chờ đối soát xong mới tiếp tục.
 
+Để EcoTrack tự gửi hàng đợi và đối soát quyết định đã lưu, chạy tiến trình riêng với cấu hình MongoDB và credential runtime.
+
+```text
+node integrations/sirocco/cli.js worker
+```
+
+Tiến trình lấy hồ sơ đến hạn và giữ quyền xử lý tạm thời trong MongoDB. Quyết định được gửi lại với cùng mã thao tác đã lưu để Core nhận biết lần gửi trước. Khi vượt giới hạn thử lại, người đã gửi vẫn có thể mở hồ sơ và dùng thao tác gửi lại trên giao diện.
+
+Khi Core trả HTTP 429, các worker và lệnh `drain` cùng kết nối MongoDB và cùng địa chỉ gateway sẽ dùng chung thời hạn chờ. Thời hạn này được lưu trong MongoDB. Yêu cầu đã bắt đầu trước lúc ghi thời hạn chờ vẫn có thể đến Core. Các ứng dụng dùng database khác chịu giới hạn chung tại gateway.
+
 Server so phiên bản nguồn và nhận ý định bằng một cập nhật có điều kiện trên bản ghi nguồn. Nếu nguồn đã đổi trước thời điểm nhận, hệ thống chặn quyết định đó. Nếu nguồn đổi sau thời điểm nhận, kết quả vẫn gắn phiên bản đã được tiếp nhận và mã băm chứng cứ của phiên bản đó. Số đo mới phải có hồ sơ phiên bản mới; không tự ghi đè chứng cứ hay quyết định cũ.
 
 Lý do từng lần yêu cầu và trả lời được hiển thị trong mục **Nội dung trao đổi**. Mỗi nội dung được lưu thành chứng cứ JSON qua kho tệp Core, quét và đọc lại kiểm mã băm trước khi hoàn tất tác vụ. Giao diện nhận văn bản; chưa có nút đính kèm tệp riêng.
