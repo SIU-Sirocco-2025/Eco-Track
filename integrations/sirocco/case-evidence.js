@@ -11,7 +11,8 @@ async function exportCaseEvidence(item, client) {
   const files = [source];
   const actions = item.reviewVersion === 2 ? item.actions ?? {} : {};
   const terminal = Object.values(actions).filter(action => action.appliedAt && ['verified', 'rejected'].includes(action.action));
-  if (terminal.length && (terminal.length !== 1 || item.result?.decision !== terminal[0].action))
+  if (item.reviewVersion === 2 && (item.result?.decision || terminal.length) &&
+      (terminal.length !== 1 || item.result?.decision !== terminal[0].action))
     fail('CASE_EVIDENCE_NOT_READY');
   for (const [taskId, action] of Object.entries(actions)) {
     if (!action.appliedAt) continue;
