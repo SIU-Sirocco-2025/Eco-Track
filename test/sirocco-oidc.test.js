@@ -7,6 +7,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const { createReviewRouter } = require('../integrations/sirocco/review-routes');
 const { hash, encode } = require('../integrations/sirocco/source');
+const { Connector } = require('../integrations/sirocco/client');
+const { actionIntent } = require('../integrations/sirocco/review-actions');
+const { recoverCompletions } = require('../integrations/sirocco/worker');
 
 test('OIDC từ chối chữ ký/issuer/audience/nonce/thời hạn sai và callback dùng lại', {
   skip: !process.env.SIROCCO_OIDC_TEST_DATABASE_URL, timeout: 60000,
@@ -52,29 +55,37 @@ test('OIDC từ chối chữ ký/issuer/audience/nonce/thời hạn sai và call
   const core = express();
   core.use(express.json());
   const coreRequests = [];
-  let unavailable = false;
+  let unavailable = false, mismatch = false, journalState = 'applied';
+  let workerEntered, holdWorker;
   const snapshotText = encode({ parameter: 'pm25', value: 10, unit: 'ug/m3', sensorId: 1, mode: 'synthetic',
     from: '2026-11-01T00:00:00Z', to: '2026-11-01T01:00:00Z', collectedAt: '2026-11-01T01:02:00Z', ageAtCollectionSeconds: 120 });
-  core.use('/api/core/connector', (req, res) => {
+  core.use('/api/core/connector', async (req, res) => {
     coreRequests.push([req.method, req.path, req.body?.operation]);
     if (unavailable) return res.sendStatus(503);
     if (req.path === '/contract') return res.json({ contract: 'sirocco.connector', version: '2.0',
       authentication: 'server-credential', isolation: 'application-resources', clientId: 'ecotrack-2025',
       capabilities: ['operations.journal', 'workflow.typed.scoped', 'workflow.process.start', 'workflow.task.complete',
         'objects.read.scoped', 'objects.quarantine', 'objects.promote.verified', 'objects.scan.receipt'] });
-    if (req.path === '/objects') return res.type('application/octet-stream').send(snapshotText);
-    if (req.path.startsWith('/operations/')) return res.json({ state: 'applied', resource: { taskId: 'task-1', processId: 'process-1' } });
+    if (req.path === '/objects') return res.type('application/octet-stream').send(mismatch ? '{}' : snapshotText);
+    if (req.path.startsWith('/operations/')) return res.json({ state: journalState, resource: { taskId: 'task-1', processId: 'process-1' } });
+    if (req.body?.operation === 'tasks.complete' && holdWorker) {
+      workerEntered();
+      await holdWorker;
+      return res.json({ data: {} });
+    }
     if (req.body?.operation === 'tasks.ended') return res.json({ data: { data: [{ id: 'task-1', endTime: '2026-11-01T01:03:00Z' }] } });
     if (req.body?.operation === 'processes.finished') return res.json({ data: { data: [{ id: 'process-1' }] } });
     return res.sendStatus(400);
   });
   const coreServer = core.listen(0, '127.0.0.1');
   await once(coreServer, 'listening');
+  const coreUrl = `http://127.0.0.1:${coreServer.address().port}/api/core/connector`;
+  const connectorToken = 'synthetic-connector-token-12345678901234567890';
   app.use('/sirocco/review', createReviewRouter({
     SIROCCO_OIDC_ISSUER: issuer, SIROCCO_REVIEW_ORIGIN: origin,
     SIROCCO_OIDC_CLIENT_ID: 'fixture-client', SIROCCO_OIDC_CLIENT_SECRET: 'synthetic-client-secret-12345678901234567890',
     SIROCCO_REVIEW_SESSION_SECRET: 'synthetic-session-secret-12345678901234567890',
-    CORE_API_URL: `http://127.0.0.1:${coreServer.address().port}/api/core/connector`, CORE_CONNECTOR_TOKEN: 'synthetic-connector-token-12345678901234567890',
+    CORE_API_URL: coreUrl, CORE_CONNECTOR_TOKEN: connectorToken,
   }));
   async function begin() {
     const response = await fetch(origin + '/sirocco/review/login', { redirect: 'manual' });
@@ -125,8 +136,13 @@ test('OIDC từ chối chữ ký/issuer/audience/nonce/thời hạn sai và call
             operationId: hash('operation') + '_review', terminal: true, evidence: { checksum: hash('fixture evidence') },
             createdAt: '2026-11-01T01:03:00Z' },
         } };
+      Object.assign(draft.actions['task-1'], actionIntent({ _id: id, ...draft },
+        { id: 'task-1', taskDefinitionKey: 'review', assignee: draft.reviewer }, {
+          actor: draft.reviewer, action: 'verified', reason: 'Đã kiểm số đo', revision: draft.revision, snapshotHash: draft.snapshotHash,
+        }), { sourceReservation: { fixture: true } });
       try {
         await collection.insertMany([{ _id: id, ...draft }, { _id: other, ...draft,
+          recovery: { blocked: true },
           actions: { 'task-1': { ...draft.actions['task-1'], actor: 'fixture-supplementer' } } }]);
         const get = url => fetch(root + url, { headers: { Cookie: cookie } });
         const detail = await get('/' + id);
@@ -143,18 +159,42 @@ test('OIDC từ chối chữ ký/issuer/audience/nonce/thời hạn sai và call
         unavailable = true;
         const degraded = await get('/' + id);
         assert.equal(degraded.status, 200);
-        assert.match(await degraded.text(), /Trang đang hiển thị bản ghi đã lưu ở EcoTrack/);
+        const degradedHtml = await degraded.text();
+        assert.match(degradedHtml, /Trang đang hiển thị bản ghi đã lưu ở EcoTrack/);
+        assert.doesNotMatch(degradedHtml, /Đối soát kết quả đã gửi|Gửi lại yêu cầu đang chờ/);
         unavailable = false;
+        mismatch = true;
+        assert.match(await (await get('/' + id)).text(), /Chứng cứ ở Core không khớp/);
+        assert.equal((await post(id)).status, 409);
+        assert.equal((await collection.findOne({ _id: id })).status, 'active');
+        mismatch = false;
+        journalState = 'pending';
+        assert.equal((await post(id)).status, 303);
+        assert.doesNotMatch(await (await get('/' + other)).text(), /Chưa xác nhận được kết quả ở Core/);
+        assert.match(await (await get('/' + id)).text(), /Chưa xác nhận được kết quả ở Core/);
+        assert.equal((await collection.findOne({ _id: id })).pendingAction, 'task-1');
+        journalState = 'applied';
         coreRequests.length = 0;
-        const results = await Promise.all([post(id), post(id)]);
-        assert.ok(results.some(response => response.status === 303));
-        assert.ok(results.every(response => [303, 404].includes(response.status)));
-        assert.ok(coreRequests.every(([method, path, operation]) => method === 'GET' && path.startsWith('/operations/') ||
+        let resumeWorker;
+        holdWorker = new Promise(resolve => { resumeWorker = resolve; });
+        const entered = new Promise(resolve => { workerEntered = resolve; });
+        const worker = recoverCompletions(collection, new Connector({ url: coreUrl, token: connectorToken }), 1);
+        try {
+          await Promise.race([entered, worker.then(() => { throw new Error('Worker did not reach Core'); })]);
+          const results = await Promise.all([post(id), post(id)]);
+          assert.ok(results.some(response => response.status === 303));
+          assert.ok(results.every(response => [303, 404].includes(response.status)));
+        } finally { resumeWorker(); await worker; holdWorker = null; }
+        assert.equal(coreRequests.filter(([, , op]) => op === 'tasks.complete').length, 1);
+        coreRequests.splice(coreRequests.findIndex(([, , op]) => op === 'tasks.complete'), 1);
+        coreRequests.splice(coreRequests.findIndex(([, path]) => path === '/contract'), 1);
+        assert.ok(coreRequests.every(([method, path, operation]) => method === 'GET' && (path === '/objects' || path.startsWith('/operations/')) ||
           method === 'POST' && path === '/workflow' && ['tasks.ended', 'processes.finished'].includes(operation)));
         assert.equal((await collection.findOne({ _id: id })).status, 'verified');
+        assert.equal((await collection.findOne({ _id: id })).recovery, undefined);
         assert.equal((await collection.findOne({ _id: other })).status, 'active');
       } finally {
-        unavailable = false;
+        unavailable = mismatch = false; journalState = 'applied';
         await collection.deleteMany({ _id: { $in: [id, other] } });
       }
     });

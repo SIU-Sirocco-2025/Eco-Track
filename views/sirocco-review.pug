@@ -28,7 +28,9 @@ html(lang="vi")
           p(role="status") Đã đối chiếu và ghi kết quả từ Core.
         else if reconciliation === 'waiting'
           p(role="status") Chưa xác nhận được kết quả ở Core. Yêu cầu đã lưu vẫn đang chờ xử lý.
-        if coreStatus === 'unavailable'
+        if coreStatus === 'mismatch'
+          p.error(role="alert") Chứng cứ ở Core không khớp bản ghi đã lưu. Báo người quản trị kiểm tra trước khi tiếp tục.
+        else if coreStatus === 'unavailable'
           p.error(role="status") Chưa đọc được trạng thái hoặc chứng cứ từ Core. Trang đang hiển thị bản ghi đã lưu ở EcoTrack.
         else if coreStatus === 'confirmed'
           p.status Đã đọc dữ liệu của hồ sơ này từ Core.
@@ -43,12 +45,12 @@ html(lang="vi")
             else if item.recovery.nextAt
               p= 'Lần thử tiếp theo từ ' + new Date(item.recovery.nextAt).toISOString()
           p= 'Nội dung đã gửi: ' + pending.reason
-          if canReconcile && coreStatus !== 'unavailable'
+          if canReconcile
             form.decision(action=root + '/' + item._id + '/reconcile' method="post")
               input(type="hidden" name="csrf" value=csrf)
               input(type="hidden" name="taskId" value=pending.taskId)
               button(type="submit") Đối soát kết quả đã gửi
-          if canRetry && coreStatus !== 'unavailable'
+          if canRetry
             form.decision(action=root + '/' + item._id method="post")
               input(type="hidden" name="csrf" value=csrf)
               input(type="hidden" name="taskId" value=pending.taskId)
@@ -141,7 +143,7 @@ html(lang="vi")
               button(type="submit" name="decision" value="verified") Xác minh nguồn
               button.secondary(type="submit" name="decision" value="request_supplement") Yêu cầu bổ sung
               button.secondary(type="submit" name="decision" value="rejected") Từ chối nguồn
-        else if item.reviewVersion !== 2 && item.status === 'active' && coreStatus !== 'unavailable'
+        else if item.reviewVersion !== 2 && item.status === 'active' && coreStatus === 'confirmed'
           form.decision(action=root + '/' + item._id method="post")
             input(type="hidden" name="csrf" value=csrf)
             if item.completion

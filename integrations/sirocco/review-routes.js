@@ -147,7 +147,8 @@ function createReviewRouter(env) {
   }
   async function evidence(item) {
     const bytes = await connector.request('/objects', undefined, { 'X-Core-Object': item.objectKey, 'X-Core-Clean': 'true' }, true);
-    if (createHash('sha256').update(bytes).digest('hex') !== item.snapshotHash) throw new Error('Checksum sai');
+    if (createHash('sha256').update(bytes).digest('hex') !== item.snapshotHash)
+      throw Object.assign(new Error('Checksum sai'), { code: 'CASE_EVIDENCE_MISMATCH' });
     return JSON.parse(bytes.toString('utf8'));
   }
   router.get('/:id/evidence.json', async (req, res) => {
@@ -185,9 +186,12 @@ function createReviewRouter(env) {
     let source = JSON.parse(item.snapshotText);
     if (item.steps?.receipt && coreStatus !== 'unavailable') {
       try { source = await evidence(item); coreStatus = 'confirmed'; }
-      catch { coreStatus = 'unavailable'; task = undefined; }
+      catch (error) {
+        coreStatus = error.code === 'CASE_EVIDENCE_MISMATCH' ? 'mismatch' : 'unavailable';
+        task = undefined;
+      }
     }
-    const canRetry = pending?.actor === actor(req);
+    const canRetry = pending?.actor === actor(req) && ['unchecked', 'confirmed'].includes(coreStatus);
     const reconciliation = req.session.reconciliation?.caseId === item._id ? req.session.reconciliation.result : null;
     if (reconciliation) delete req.session.reconciliation;
     render(res, { item, task, pending, canRetry, source, coreStatus, displayStatus: caseStatus(item),
@@ -202,9 +206,12 @@ function createReviewRouter(env) {
       return render(res, { error: 'Không tìm thấy yêu cầu đang chờ đối soát do bạn gửi.' }, 404);
     const detail = root + '/' + item._id;
     try {
+      await evidence(item);
       await reconcileAction(collection(), connector, item._id, pending.taskId);
       req.session.reconciliation = { caseId: item._id, result: 'confirmed' };
     } catch (error) {
+      if (error.code === 'CASE_EVIDENCE_MISMATCH')
+        return render(res, { error: 'Chứng cứ ở Core không khớp bản ghi của EcoTrack.' }, 409);
       if (error.status !== 404 && !error.retryable && error.code !== 'REVIEW_ACTION_UNCONFIRMED') throw error;
       req.session.reconciliation = { caseId: item._id, result: 'waiting' };
     }
