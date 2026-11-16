@@ -309,7 +309,7 @@ curl -H "Accept: application/ld+json" \
 
 ## 🔧 Yêu Cầu Hệ Thống
 
-- Node.js >= 16.x, npm/yarn
+- Node.js 22.16.0 trở lên và npm. Bản tích hợp đã được kiểm với Node.js 22.16.0.
 - MongoDB (local/Atlas)
 - Python 3.9+ nếu dùng dự đoán
 - Git
