@@ -133,7 +133,7 @@ async function reconcileCompletion(collection, client, id) {
   await collection.updateOne({ _id: id, 'completion.taskId': item.completion.taskId }, { $set: {
     status: item.completion.decision, result: { decision: item.completion.decision, reportedActor: item.completion.actor,
       processId: item.steps.processId, taskId: item.completion.taskId, reconciledAt: new Date().toISOString() },
-  }, $unset: { recovery: '' } });
+  }, $unset: { recovery: '', recoveryReadyAt: '' } });
   return summary(await collection.findOne({ _id: id }));
 }
 async function complete(collection, client, id, actor, decision) {
@@ -144,7 +144,8 @@ async function complete(collection, client, id, actor, decision) {
     const tasks = await client.workflow({ operation: 'tasks.list', processId: item.steps.processId });
     if (tasks.data?.length !== 1 || tasks.data[0].taskDefinitionKey !== 'review' || tasks.data[0].assignee !== actor) fail('OUTBOX_TASK_CONFLICT');
     const completion = { taskId: tasks.data[0].id, actor, decision };
-    await collection.updateOne({ _id: id, completion: { $exists: false } }, { $set: { completion } });
+    await collection.updateOne({ _id: id, completion: { $exists: false } },
+      { $set: { completion, recoveryReadyAt: new Date(Date.now() + 3000) } });
     item = await collection.findOne({ _id: id });
   }
   if (item.completion.actor !== actor || item.completion.decision !== decision) fail('OUTBOX_COMPLETION_CONFLICT');

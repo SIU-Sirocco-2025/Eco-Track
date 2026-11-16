@@ -90,8 +90,12 @@ test('hai worker giữ một ý định v1 khi Core đã hoàn tất nhưng ghi 
     });
     try {
       await queue.insertOne({ _id: 'review', status: 'active', createdAt: new Date(),
+        recoveryReadyAt: new Date(Date.now() + 60000),
         reviewer: 'actor', steps: { processId: 'process-1' }, operations: { complete: 'same-intent' },
         completion: { taskId: 'task-1', actor: 'actor', decision: 'verified' } });
+      await recoverCompletions(queue, client);
+      assert.equal(calls, 0);
+      await queue.updateOne({ _id: 'review' }, { $set: { recoveryReadyAt: new Date(0) } });
       await Promise.all([recoverCompletions(brokenWriter, client), recoverCompletions(brokenWriter, client)]);
       assert.equal(calls, 1);
       const waiting = await queue.findOne({ _id: 'review' });
@@ -101,14 +105,17 @@ test('hai worker giữ một ý định v1 khi Core đã hoàn tất nhưng ghi 
       await recoverCompletions(queue, client);
       assert.equal(calls, 1);
       await queue.updateOne({ _id: 'review' }, { $set: { 'recovery.nextAt': new Date(0) } });
-      await recoverCompletions(db.collection(name), client);
+      await queue.insertMany(Array.from({ length: 21 }, (_, index) => ({
+        ...waiting, _id: 'new-' + index, createdAt: new Date(+waiting.createdAt + 1), recovery: undefined,
+      })));
+      await recoverCompletions(db.collection(name), client, 1);
       const verified = await queue.findOne({ _id: 'review' });
       assert.equal(verified.status, 'verified');
       assert.equal(verified.recovery, undefined);
       assert.deepEqual([...decisions], ['same-intent']);
       await queue.updateOne({ _id: 'review' }, { $set: { status: 'active',
         recovery: { attempts: 10, startedAt: new Date(), until: new Date(0) } } });
-      await recoverCompletions(queue, client);
+      await recoverCompletions(queue, client, 1);
       assert.equal(calls, 2);
       assert.equal((await queue.findOne({ _id: 'review' })).recovery.code, 'RECOVERY_BUDGET_EXHAUSTED');
     } finally {

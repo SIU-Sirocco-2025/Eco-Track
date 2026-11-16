@@ -26,11 +26,12 @@ const completionPending = { status: 'active', $or: [
 async function recoverCompletions(collection, client, limit = 20, cooldown) {
   const now = new Date();
   const due = { $and: [completionPending,
+    { $or: [{ recoveryReadyAt: { $exists: false } }, { recoveryReadyAt: { $lte: now } }] },
     { $or: [{ 'recovery.nextAt': { $exists: false } }, { 'recovery.nextAt': { $lte: now } }] },
     { $or: [{ 'recovery.until': { $exists: false } }, { 'recovery.until': { $lte: now } }] },
   ], 'recovery.blocked': { $ne: true } };
   const items = await collection.find(due, { projection: { _id: 1 } })
-    .sort({ 'recovery.nextAt': 1, createdAt: 1, _id: 1 }).limit(limit).toArray();
+    .sort({ createdAt: 1, _id: 1 }).limit(limit).toArray();
   for (const { _id } of items) {
     const remaining = await cooldown?.remaining();
     if (remaining > 0) return remaining;

@@ -44,6 +44,10 @@ Tiến trình lấy hồ sơ đến hạn và giữ quyền xử lý tạm thờ
 
 Khi Core trả HTTP 429, các worker và lệnh `drain` cùng kết nối MongoDB và cùng địa chỉ gateway sẽ dùng chung thời hạn chờ. Thời hạn này được lưu trong MongoDB. Yêu cầu đã bắt đầu trước lúc ghi thời hạn chờ vẫn có thể đến Core. Các ứng dụng dùng database khác chịu giới hạn chung tại gateway.
 
+Worker dành ba giây cho lượt gửi quyết định từ giao diện trước khi xét tự đối soát. Nếu hai lượt vẫn đến Core cùng lúc, chúng dùng chung mã thao tác và nội dung đã lưu. Khi worker dừng đột ngột, worker khác có thể phải chờ quyền xử lý tạm thời hết hạn, tối đa năm phút cho lượt gửi hoặc mười phút cho lượt đối soát.
+
+Lệnh `node integrations/sirocco/cli.js retry EVENT_ID` cho phép người vận hành mở lại lượt tự thử đã dừng. Lệnh giữ nội dung và mã thao tác cũ, đồng thời đặt lại ngân sách thử. Nếu gateway đang yêu cầu chờ thì worker vẫn tuân thủ thời hạn đã lưu.
+
 Server so phiên bản nguồn và nhận ý định bằng một cập nhật có điều kiện trên bản ghi nguồn. Nếu nguồn đã đổi trước thời điểm nhận, hệ thống chặn quyết định đó. Nếu nguồn đổi sau thời điểm nhận, kết quả vẫn gắn phiên bản đã được tiếp nhận và mã băm chứng cứ của phiên bản đó. Số đo mới phải có hồ sơ phiên bản mới; không tự ghi đè chứng cứ hay quyết định cũ.
 
 Lý do từng lần yêu cầu và trả lời được hiển thị trong mục **Nội dung trao đổi**. Mỗi nội dung được lưu thành chứng cứ JSON qua kho tệp Core, quét và đọc lại kiểm mã băm trước khi hoàn tất tác vụ. Giao diện nhận văn bản; chưa có nút đính kèm tệp riêng.

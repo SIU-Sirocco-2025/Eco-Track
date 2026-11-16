@@ -104,7 +104,7 @@ async function reconcileAction(collection, client, id, taskId) {
       snapshotHash: intent.snapshotHash, obsoleteAck: intent.obsoleteAck, reportedActor: intent.actor, taskId, processId: item.steps.processId };
   } else patch.reviewState = intent.obsoleteAck ? 'source_changed' : intent.nextTask === 'review' ? 'awaiting_review' : 'awaiting_supplement';
   // Chỉ một action đang chờ được phép cập nhật state; retry action cũ không quay lùi hồ sơ.
-  const applied = await collection.updateOne({ _id: id, pendingAction: taskId }, { $set: patch, $unset: { pendingAction: '', recovery: '' } });
+  const applied = await collection.updateOne({ _id: id, pendingAction: taskId }, { $set: patch, $unset: { pendingAction: '', recovery: '', recoveryReadyAt: '' } });
   const current = await collection.findOne({ _id: id });
   if (!applied.matchedCount && !current?.actions?.[taskId]?.appliedAt) fail('REVIEW_ACTION_UNCONFIRMED');
   return current;
@@ -133,7 +133,8 @@ async function performAction(collection, client, id, input) {
         { [`actions.${input.taskId}`]: { $exists: false } }) };
     const replacement = { ...intent, createdAt: new Date().toISOString(),
       sourceReservation: { obsoleteAck: true, acknowledgedAt: new Date().toISOString() } };
-    const update = { $set: { [`actions.${input.taskId}`]: replacement, pendingAction: input.taskId } };
+    const update = { $set: { [`actions.${input.taskId}`]: replacement, pendingAction: input.taskId,
+      recoveryReadyAt: new Date(Date.now() + 3000) } };
     if (saved) update.$push = { rejectedActionHistory: saved };
     await collection.updateOne(query, update);
     item = await collection.findOne({ _id: id });
@@ -154,7 +155,8 @@ async function performAction(collection, client, id, input) {
     await collection.updateOne({ _id: id, status: 'active', revision: input.revision,
       snapshotHash: input.snapshotHash, superseded: { $ne: true }, pendingAction: { $exists: false },
       [`actions.${input.taskId}`]: { $exists: false } },
-    { $set: { [`actions.${input.taskId}`]: { ...intent, createdAt: new Date().toISOString() }, pendingAction: input.taskId } });
+    { $set: { [`actions.${input.taskId}`]: { ...intent, createdAt: new Date().toISOString() }, pendingAction: input.taskId,
+      recoveryReadyAt: new Date(Date.now() + 3000) } });
     item = await collection.findOne({ _id: id });
     saved = item.actions?.[input.taskId];
     if (!saved || saved.digest !== intent.digest) fail('REVIEW_ACTION_CONFLICT');
