@@ -122,6 +122,9 @@ test('hai worker giữ một ý định v1 khi Core đã hoàn tất nhưng ghi 
       assert.equal(verified.recovery, undefined);
       assert.equal(verified.completion.taskId, 'task-1');
       assert.equal(await queue.countDocuments({ _id: 'review', status: 'active' }), 0);
+      await queue.updateMany({ _id: /^new-/ }, { $set: { status: 'verified' } });
+      await recoverCompletions(queue, client);
+      assert.equal(calls, 2);
       assert.deepEqual([...decisions], ['same-intent']);
       await queue.updateOne({ _id: 'review' }, { $set: { status: 'active',
         recovery: { attempts: 10, startedAt: new Date(), until: new Date(0) } } });
