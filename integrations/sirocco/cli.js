@@ -6,16 +6,17 @@ const { Connector } = require('./client');
 const { hash, fail } = require('./source');
 const { initOutbox, enqueueHour, complete, reconcileCompletion, summary } = require('./outbox');
 const { drainReady, runWorker, sharedCooldown } = require('./worker');
+const { workflowImpact } = require('./workflow-impact');
 require('dotenv').config({ quiet: true });
 async function main() {
   const [command, ...args] = process.argv.slice(2);
   if (command === '--help' && args.length === 0) return {
-    commands: ['check', 'install', 'install-review', 'enqueue-review MONGO_HOUR_ID SENSOR_ID REASON', 'enqueue MONGO_HOUR_ID', 'drain', 'worker', 'metrics', 'status EVENT_ID',
+    commands: ['check', 'install', 'install-review', 'workflow-impact DEFINITION_ID', 'enqueue-review MONGO_HOUR_ID SENSOR_ID REASON', 'enqueue MONGO_HOUR_ID', 'drain', 'worker', 'metrics', 'status EVENT_ID',
       'complete EVENT_ID REVIEWER_ID verified|rejected', 'reconcile EVENT_ID', 'retry EVENT_ID'],
     environment: ['CORE_API_URL', 'CORE_CONNECTOR_TOKEN', 'MONGODB_URL', 'SIROCCO_DEFINITION_ID', 'SIROCCO_REVIEWER_ID'],
     guide: 'integrations/sirocco/README.md',
   };
-  const counts = { check: 0, install: 0, 'install-review': 0, 'enqueue-review': 3, enqueue: 1, drain: 0, worker: 0, metrics: 0, status: 1, complete: 3, reconcile: 1, retry: 1 };
+  const counts = { check: 0, install: 0, 'install-review': 0, 'workflow-impact': 1, 'enqueue-review': 3, enqueue: 1, drain: 0, worker: 0, metrics: 0, status: 1, complete: 3, reconcile: 1, retry: 1 };
   if (!(command in counts) || args.length !== counts[command]) fail('USAGE_CHECK_INSTALL_ENQUEUE_DRAIN_STATUS_COMPLETE_RECONCILE_RETRY');
   const client = new Connector({ url: process.env.CORE_API_URL, token: process.env.CORE_CONNECTOR_TOKEN, deploy: ['install', 'install-review'].includes(command) });
   if (command === 'check') {
@@ -32,6 +33,8 @@ async function main() {
   if (!process.env.MONGODB_URL) fail('MONGODB_URL_REQUIRED');
   await mongoose.connect(process.env.MONGODB_URL, { serverSelectionTimeoutMS: 5000 });
   try {
+    if (command === 'workflow-impact') return await workflowImpact(mongoose.connection.db.collection('sirocco_outbox'),
+      client, process.env.SIROCCO_REVIEW_DEFINITION_ID, args[0]);
     const collection = await initOutbox(mongoose.connection.db);
     const cooldown = sharedCooldown(mongoose.connection.db.collection('sirocco_connector_cooldowns'), client);
     if (command === 'enqueue-review') {

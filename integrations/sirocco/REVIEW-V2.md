@@ -25,6 +25,20 @@ node integrations/sirocco/cli.js install-review
 
 Ghi definition ID nhận được vào `SIROCCO_REVIEW_DEFINITION_ID`, rồi giảm lại quyền credential về runtime theo hướng dẫn tích hợp. Đặt `SIROCCO_REVIEWER_ID`, `SIROCCO_SUPPLEMENTER_ID` và `SIROCCO_RULE_VERSION`. Hồ sơ v1 vẫn giữ definition cũ và dùng đường xử lý cũ.
 
+### Xem ảnh hưởng trước khi chọn định nghĩa mới
+
+Từ terminal backend EcoTrack, giữ `SIROCCO_REVIEW_DEFINITION_ID` bằng giá trị đang chạy và truyền ID dự kiến cho lệnh sau.
+
+```text
+node integrations/sirocco/cli.js workflow-impact DINH_NGHIA_MOI
+```
+
+Lệnh dùng quyền đọc của client EcoTrack để kiểm cả hai định nghĩa ở Core rồi đếm hồ sơ v2 đang mở trong MongoDB đang kết nối. Nhóm đếm gồm chờ gửi, chờ gửi lại, bị chặn và đang xử lý, và loại hồ sơ đã thay thế. `definitionId: null` trong kết quả đếm nghĩa là báo cáo không đọc được một ID hợp lệ trong nhóm đó. Kết quả mô tả phạm vi EcoTrack ở thời điểm đọc, không phải tổng toàn Core. API trả ID, process key và version. Mã băm BPMN nên lấy từ kết quả `install-review` đã lưu khi triển khai.
+
+Lệnh yêu cầu hai định nghĩa thuộc cùng process key và client. `WORKFLOW_IMPACT_DEFINITION_UNAVAILABLE` nghĩa là ít nhất một định nghĩa chưa đọc được bằng credential hiện tại. Hãy kiểm lại ID, môi trường và quyền trước khi đổi cấu hình. Lệnh không ghi MongoDB, không cài BPMN và không áp dụng cấu hình.
+
+Kiểm adapter với định nghĩa mới, lưu giá trị cũ, chạy xem trước ngay trước lúc đổi, rồi cập nhật `SIROCCO_REVIEW_DEFINITION_ID` trong cấu hình backend cho lần tạo hồ sơ kế tiếp. Nếu nhiều người vận hành có thể đổi cấu hình, điều phối để một người thực hiện và kiểm lại giá trị hiện hành trước khi lưu. Cấu hình vẫn đổi bằng quy trình triển khai hiện có, chưa có thao tác tự áp dụng từ báo cáo. Nếu cần quay lại, đặt biến về ID cũ cho hồ sơ mới sau khi kiểm còn quyền đọc. Các hồ sơ đã có giữ ID định nghĩa đã lưu.
+
 Để tạo một việc có chủ đích từ số đo đã lưu:
 
 ```text
