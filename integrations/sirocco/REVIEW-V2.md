@@ -33,7 +33,7 @@ Từ terminal backend EcoTrack, giữ `SIROCCO_REVIEW_DEFINITION_ID` bằng giá
 node integrations/sirocco/cli.js workflow-impact DINH_NGHIA_MOI
 ```
 
-Lệnh dùng quyền đọc của client EcoTrack để kiểm cả hai định nghĩa ở Core rồi đếm hồ sơ v2 đang mở trong MongoDB đang kết nối. Nhóm đếm gồm chờ gửi, chờ gửi lại, bị chặn và đang xử lý, và loại hồ sơ đã thay thế. `definitionId: null` trong kết quả đếm nghĩa là báo cáo không đọc được một ID hợp lệ trong nhóm đó. Kết quả mô tả phạm vi EcoTrack ở thời điểm đọc, không phải tổng toàn Core. API trả ID, process key và version. Mã băm BPMN nên lấy từ kết quả `install-review` đã lưu khi triển khai.
+Lệnh dùng credential runtime EcoTrack. Nó chỉ gọi API đọc định nghĩa và truy vấn MongoDB. `current` là ID trong terminal này, nên hãy đối chiếu với cấu hình backend đang chạy. Core và MongoDB được đọc nối tiếp. Nhóm đếm gồm hồ sơ v2 chờ gửi, chờ gửi lại, bị chặn và đang xử lý, trừ hồ sơ đã thay thế. `definitionId: null` cho biết nhóm thiếu ID hợp lệ. Đây là số đếm của MongoDB EcoTrack đang kết nối. API trả ID, process key và version. Mã băm BPMN nên lấy từ kết quả `install-review` đã lưu khi triển khai.
 
 Lệnh yêu cầu hai định nghĩa thuộc cùng process key và client. `WORKFLOW_IMPACT_DEFINITION_UNAVAILABLE` nghĩa là ít nhất một định nghĩa chưa đọc được bằng credential hiện tại. Hãy kiểm lại ID, môi trường và quyền trước khi đổi cấu hình. Lệnh không ghi MongoDB, không cài BPMN và không áp dụng cấu hình.
 
