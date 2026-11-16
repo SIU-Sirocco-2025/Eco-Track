@@ -48,6 +48,14 @@ test('lỗi ghi sau upload vẫn hẹn thử lại cho hồ sơ đã nằm chờ
       await queue.updateOne({ _id: 'old' }, { $set: { nextAttemptAt: new Date(0) } });
       await dispatch(checkpointFailure, client, 'old');
       assert.deepEqual(uploadKeys, ['saved-upload-intent', 'saved-upload-intent']);
+      await queue.updateOne({ _id: 'old' }, { $set: { attempts: 9, nextAttemptAt: new Date(0) } });
+      const tenth = await dispatch(checkpointFailure, client, 'old');
+      assert.equal(tenth.status, 'blocked');
+      assert.equal(uploadKeys.length, 3);
+      await queue.updateOne({ _id: 'old' }, { $set: { status: 'retry', nextAttemptAt: new Date(0) } });
+      const eleventh = await dispatch(checkpointFailure, client, 'old');
+      assert.equal(eleventh.lastError, 'OUTBOX_RETRY_BUDGET_EXHAUSTED');
+      assert.equal(uploadKeys.length, 3);
     } finally {
       await queue.drop();
       await db.close();
