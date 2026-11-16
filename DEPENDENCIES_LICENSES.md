@@ -35,7 +35,7 @@ Xem thêm cấu hình đầy đủ trong [`package.json`](package.json).
 | json2csv | ^6.x | MIT | https://github.com/zemirco/json2csv |
 | fs-extra | ^11.x | MIT | https://github.com/jprichardson/node-fs-extra |
 | md5 | ^2.x | BSD-3-Clause | https://github.com/pvorb/node-md5 |
-| nodemailer | ^6.x | MIT | https://nodemailer.com/ |
+| nodemailer | ^10.6.0 | MIT | https://nodemailer.com/ |
 | winston / winston-daily-rotate-file *(nếu sử dụng)* | ^3.x | MIT | https://github.com/winstonjs/winston |
 
 > **Ghi chú:**  
