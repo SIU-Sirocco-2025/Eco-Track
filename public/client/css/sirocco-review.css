@@ -30,6 +30,9 @@ li { justify-content: space-between; }
 .case-timeline p, .case-timeline time { margin-block: .25rem; }
 .case-timeline time, .case-timeline small { display: block; }
 .case-timeline .digest { overflow-wrap: anywhere; }
+.case-filter { display: flex; align-items: center; flex-wrap: wrap; gap: .65rem; }
+.case-filter select { max-width: 100%; min-height: 2.85rem; border: 1px solid #658579; border-radius: .35rem; background: #fff; color: inherit; font: inherit; padding: .45rem .6rem; }
+form.decision + form.decision { margin-block-start: .65rem; }
 @media (max-width: 32rem) {
   h1 { font-size: 1.6rem; }
   dl { display: block; }

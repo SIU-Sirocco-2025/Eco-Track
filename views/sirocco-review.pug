@@ -17,15 +17,49 @@ html(lang="vi")
             button.secondary(type="submit") Đăng xuất EcoTrack
     main
       h1 Xác minh nguồn quan trắc
-      - const labels = { pending: 'Chờ gửi', retry: 'Chờ gửi lại', blocked: 'Cần người xử lý', active: 'Chờ xác minh', verified: 'Đã xác minh', rejected: 'Đã từ chối' }
+      - const labels = { pending: 'Chờ gửi', retry: 'Chờ gửi lại', blocked: 'Cần người xử lý', 'awaiting-person': 'Chờ người xác minh', 'awaiting-supplement': 'Chờ bổ sung', reconciling: 'Chờ đồng bộ kết quả', verified: 'Đã xác minh', rejected: 'Đã từ chối' }
       - const modes = { observed: 'Quan trắc', replay: 'Phát lại', synthetic: 'Dữ liệu kiểm thử' }
       if error
         p.error(role="alert")= error
         a(href=root) Về danh sách xác minh
       else if item
-        p.status= labels[item.status]
+        p.status= labels[displayStatus]
+        if reconciliation === 'confirmed'
+          p(role="status") Đã đối chiếu và ghi kết quả từ Core.
+        else if reconciliation === 'waiting'
+          p(role="status") Chưa xác nhận được kết quả ở Core. Yêu cầu đã lưu vẫn đang chờ xử lý.
+        if coreStatus === 'unavailable'
+          p.error(role="status") Chưa đọc được trạng thái hoặc chứng cứ từ Core. Trang đang hiển thị bản ghi đã lưu ở EcoTrack.
+        else if coreStatus === 'confirmed'
+          p.status Đã đọc dữ liệu của hồ sơ này từ Core.
+        else
+          p.status Chưa kiểm kết nối Core cho hồ sơ này.
+        if item.reviewVersion === 2 && pending
+          p(role="status") Yêu cầu trước đang chờ đối soát. Chưa thể xử lý bước kế tiếp.
+          if item.recovery && item.recovery.lastAt
+            p= 'Lần thử gần nhất lúc ' + new Date(item.recovery.lastAt).toISOString()
+            if item.recovery.blocked
+              p Đã dừng tự thử lại. Người đã gửi có thể mở hồ sơ và gửi lại.
+            else if item.recovery.nextAt
+              p= 'Lần thử tiếp theo từ ' + new Date(item.recovery.nextAt).toISOString()
+          p= 'Nội dung đã gửi: ' + pending.reason
+          if canReconcile && coreStatus !== 'unavailable'
+            form.decision(action=root + '/' + item._id + '/reconcile' method="post")
+              input(type="hidden" name="csrf" value=csrf)
+              input(type="hidden" name="taskId" value=pending.taskId)
+              button(type="submit") Đối soát kết quả đã gửi
+          if canRetry && coreStatus !== 'unavailable'
+            form.decision(action=root + '/' + item._id method="post")
+              input(type="hidden" name="csrf" value=csrf)
+              input(type="hidden" name="taskId" value=pending.taskId)
+              input(type="hidden" name="revision" value=pending.revision)
+              input(type="hidden" name="snapshotHash" value=pending.snapshotHash)
+              input(type="hidden" name="reason" value=pending.reason)
+              if pending.obsoleteAck
+                input(type="hidden" name="obsoleteAck" value="true")
+              button.secondary(type="submit" name="decision" value=pending.action) Gửi lại yêu cầu đang chờ
         if item.reviewVersion === 2
-          if item.status === 'active'
+          if item.status === 'active' && !pending
             p= item.reviewState === 'awaiting_supplement' ? 'Đang chờ người được giao bổ sung thông tin.' : 'Người xác minh xem dữ liệu và ghi rõ lý do xử lý.'
           h2 Lý do cần xác minh
           p= item.reviewReason
@@ -84,26 +118,7 @@ html(lang="vi")
                     time(datetime=event.nextAt)= 'Lần thử tiếp theo từ ' + event.nextAt
         if item.steps && item.steps.receipt
           a(href=root + '/' + item._id + '/evidence.json') Tải gói chứng cứ JSON
-        if item.reviewVersion === 2 && pending
-          p(role="status") Yêu cầu trước đang chờ đối soát. Chưa thể xử lý bước kế tiếp.
-          if item.recovery && item.recovery.lastAt
-            p= 'Lần thử gần nhất lúc ' + new Date(item.recovery.lastAt).toISOString()
-            if item.recovery.blocked
-              p Đã dừng tự thử lại. Người đã gửi có thể mở hồ sơ và gửi lại.
-            else if item.recovery.nextAt
-              p= 'Lần thử tiếp theo từ ' + new Date(item.recovery.nextAt).toISOString()
-          p= 'Nội dung đã gửi: ' + pending.reason
-          if canRetry
-            form.decision(action=root + '/' + item._id method="post")
-              input(type="hidden" name="csrf" value=csrf)
-              input(type="hidden" name="taskId" value=pending.taskId)
-              input(type="hidden" name="revision" value=pending.revision)
-              input(type="hidden" name="snapshotHash" value=pending.snapshotHash)
-              input(type="hidden" name="reason" value=pending.reason)
-              if pending.obsoleteAck
-                input(type="hidden" name="obsoleteAck" value="true")
-              button(type="submit" name="decision" value=pending.action) Gửi lại yêu cầu đang chờ
-        else if item.reviewVersion === 2 && task
+        if item.reviewVersion === 2 && task
           form.decision(action=root + '/' + item._id method="post")
             input(type="hidden" name="csrf" value=csrf)
             input(type="hidden" name="taskId" value=task.id)
@@ -126,7 +141,7 @@ html(lang="vi")
               button(type="submit" name="decision" value="verified") Xác minh nguồn
               button.secondary(type="submit" name="decision" value="request_supplement") Yêu cầu bổ sung
               button.secondary(type="submit" name="decision" value="rejected") Từ chối nguồn
-        else if item.reviewVersion !== 2 && item.status === 'active'
+        else if item.reviewVersion !== 2 && item.status === 'active' && coreStatus !== 'unavailable'
           form.decision(action=root + '/' + item._id method="post")
             input(type="hidden" name="csrf" value=csrf)
             if item.completion
@@ -136,14 +151,16 @@ html(lang="vi")
               button(type="submit" name="decision" value="verified") Xác minh nguồn
               button.secondary(type="submit" name="decision" value="rejected") Từ chối nguồn
       else if items
-        form(action=root method="get")
+        form.case-filter(action=root method="get")
           label(for="status-filter") Trạng thái công việc
           select#status-filter(name="status")
             option(value="") Tất cả
             option(value="pending" selected=selectedStatus === 'pending') Chờ gửi
             option(value="retry" selected=selectedStatus === 'retry') Chờ gửi lại
             option(value="blocked" selected=selectedStatus === 'blocked') Cần người xử lý
-            option(value="active" selected=selectedStatus === 'active') Đang xử lý
+            option(value="active" selected=selectedStatus === 'active') Đang xử lý (tất cả)
+            option(value="awaiting-person" selected=selectedStatus === 'awaiting-person') Chờ người xử lý
+            option(value="reconciling" selected=selectedStatus === 'reconciling') Chờ đồng bộ kết quả
             option(value="verified" selected=selectedStatus === 'verified') Đã xác minh
             option(value="rejected" selected=selectedStatus === 'rejected') Đã từ chối
           button.secondary(type="submit") Lọc công việc
@@ -152,11 +169,11 @@ html(lang="vi")
             each row in items
               li
                 a(href=root + '/' + row._id)= row.variables.parameter + ' · Cảm biến ' + row.variables.sensorId
-                span.status= labels[row.status]
-                if row.reviewState
-                  span= ({awaiting_review: ' · Chờ người xác minh', awaiting_supplement: ' · Chờ bổ sung', source_changed: ' · Nguồn đã thay đổi'})[row.reviewState]
+                span.status= labels[row.displayStatus]
+                if row.reviewState === 'source_changed'
+                  span Nguồn đã thay đổi
         else
-          p Bạn chưa được giao bản ghi nào.
+          p= selectedStatus ? 'Không có công việc được giao ở trạng thái này. Chọn Tất cả để xem các công việc khác.' : 'Bạn chưa được giao bản ghi nào.'
       else
         p Đăng nhập để xem và xử lý các bản ghi được giao cho bạn.
         a.action(href=root + '/login') Đăng nhập với Sirocco

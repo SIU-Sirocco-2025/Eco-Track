@@ -4,6 +4,7 @@ const { randomUUID } = require('node:crypto');
 const { dispatch, complete } = require('./outbox');
 const { performAction } = require('./review-actions');
 const { hash } = require('./source');
+const { completionPending } = require('./case-operations');
 
 function sharedCooldown(state, client) {
   const _id = hash({ gateway: client.url });
@@ -17,11 +18,6 @@ function sharedCooldown(state, client) {
     },
   };
 }
-
-const completionPending = { status: 'active', $or: [
-  { reviewVersion: 2, pendingAction: { $type: 'string' } },
-  { reviewVersion: { $ne: 2 }, 'completion.taskId': { $type: 'string' } },
-] };
 
 async function recoverCompletions(collection, client, limit = 20, cooldown) {
   const now = new Date();

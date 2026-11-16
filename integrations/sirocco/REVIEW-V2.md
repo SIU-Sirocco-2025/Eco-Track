@@ -46,6 +46,8 @@ Các mốc trong ví dụ chỉ minh họa cách tạo việc. Người phụ tr
 
 Yêu cầu được ghi bền trước khi gọi Core. Khi chưa đối soát được kết quả, người đã gửi mở lại hồ sơ và chọn **Gửi lại yêu cầu đang chờ**. Nội dung gửi lại giữ nguyên; người ở bước sau chờ đối soát xong mới tiếp tục.
 
+Dùng bộ lọc **Chờ đồng bộ kết quả** để tìm hồ sơ có yêu cầu đã lưu. Nếu Core đã hoàn tất quyết định, người đã gửi chọn **Đối soát kết quả đã gửi**. EcoTrack đọc nhật ký và lịch sử ở Core rồi ghi kết quả vào hồ sơ. Nút này không gửi thêm quyết định. Nếu Core chưa xác nhận, giữ yêu cầu đã lưu và dùng **Gửi lại yêu cầu đang chờ** khi cần. Nếu mất kết nối, trang chi tiết hiển thị bản số đo đã lưu tại EcoTrack cùng trạng thái gần nhất.
+
 Để EcoTrack tự gửi hàng đợi và đối soát quyết định đã lưu, chạy tiến trình riêng với cấu hình MongoDB và credential runtime.
 
 ```text

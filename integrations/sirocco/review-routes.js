@@ -6,10 +6,11 @@ const { MongoStore } = require('connect-mongo');
 const { createHash, randomBytes, timingSafeEqual } = require('node:crypto');
 const { Connector } = require('./client');
 const { complete } = require('./outbox');
-const { performAction } = require('./review-actions');
+const { performAction, reconcileAction } = require('./review-actions');
 const { caseTimeline } = require('./case-timeline');
 const { exportCaseEvidence } = require('./case-evidence');
 const { hash } = require('./source');
+const { operationsFilter, caseStatus } = require('./case-operations');
 
 const root = '/sirocco/review';
 const cookieName = 'ecotrack.review';
@@ -130,9 +131,12 @@ function createReviewRouter(env) {
     if (!reviewer) return render(res);
     const filter = { $or: [{ reviewer }, { reviewVersion: 2, supplementer: reviewer }], status: { $in: visibleStatuses } };
     if (visibleStatuses.includes(req.query.status)) filter.status = req.query.status;
-    const items = await collection().find(filter,
-      { projection: { status: 1, variables: 1, reviewState: 1, reviewReason: 1 } }).sort({ createdAt: -1 }).limit(30).toArray();
-    render(res, { items, selectedStatus: req.query.status, csrf: req.session.csrf });
+    const operation = operationsFilter(req.query.status);
+    const query = operation ? { $and: [filter, operation] } : filter;
+    const items = await collection().find(query,
+      { projection: { status: 1, variables: 1, reviewVersion: 1, reviewState: 1, pendingAction: 1, 'completion.taskId': 1 } })
+      .sort({ createdAt: -1 }).limit(30).toArray();
+    render(res, { items: items.map(item => ({ ...item, displayStatus: caseStatus(item) })), selectedStatus: req.query.status, csrf: req.session.csrf });
   });
   const visibleStatuses = ['pending', 'retry', 'blocked', 'active', 'verified', 'rejected'];
   const actionableStatuses = ['active', 'verified', 'rejected'];
@@ -165,18 +169,46 @@ function createReviewRouter(env) {
     const item = await owned(req);
     if (!item) return render(res, { error: 'Không tìm thấy việc xác minh được giao cho bạn.' }, 404);
     let task, pending;
+    let coreStatus = 'unchecked';
     if (item.reviewVersion === 2 && item.status === 'active') {
       pending = item.pendingAction && item.actions?.[item.pendingAction];
       if (!pending) {
-        const tasks = await connector.workflow({ operation: 'tasks.list', processId: item.steps.processId });
-        task = tasks.data?.find(t => t.assignee === actor(req));
+        try {
+          const tasks = await connector.workflow({ operation: 'tasks.list', processId: item.steps.processId });
+          task = tasks.data?.find(t => t.assignee === actor(req));
+          coreStatus = 'confirmed';
+        } catch { coreStatus = 'unavailable'; }
       }
     }
     if (typeof item.snapshotText !== 'string' || hash(item.snapshotText) !== item.snapshotHash)
       throw Object.assign(new Error('Chứng cứ nguồn không khớp'), { code: 'CASE_EVIDENCE_INVALID' });
-    const source = item.steps?.receipt ? await evidence(item) : JSON.parse(item.snapshotText);
-    render(res, { item, task, pending, canRetry: pending?.actor === actor(req), source,
+    let source = JSON.parse(item.snapshotText);
+    if (item.steps?.receipt && coreStatus !== 'unavailable') {
+      try { source = await evidence(item); coreStatus = 'confirmed'; }
+      catch { coreStatus = 'unavailable'; task = undefined; }
+    }
+    const canRetry = pending?.actor === actor(req);
+    const reconciliation = req.session.reconciliation?.caseId === item._id ? req.session.reconciliation.result : null;
+    if (reconciliation) delete req.session.reconciliation;
+    render(res, { item, task, pending, canRetry, source, coreStatus, displayStatus: caseStatus(item),
+      canReconcile: canRetry && Boolean(pending.evidence),
+      reconciliation,
       timeline: caseTimeline(item, source), csrf: req.session.csrf });
+  });
+  router.post('/:id/reconcile', csrf, async (req, res) => {
+    const item = await owned(req, ['active']);
+    const pending = item?.reviewVersion === 2 && item.pendingAction && item.actions?.[item.pendingAction];
+    if (!pending || pending.actor !== actor(req) || !pending.evidence || pending.taskId !== req.body.taskId)
+      return render(res, { error: 'Không tìm thấy yêu cầu đang chờ đối soát do bạn gửi.' }, 404);
+    const detail = root + '/' + item._id;
+    try {
+      await reconcileAction(collection(), connector, item._id, pending.taskId);
+      req.session.reconciliation = { caseId: item._id, result: 'confirmed' };
+    } catch (error) {
+      if (error.status !== 404 && !error.retryable && error.code !== 'REVIEW_ACTION_UNCONFIRMED') throw error;
+      req.session.reconciliation = { caseId: item._id, result: 'waiting' };
+    }
+    return res.redirect(303, detail);
   });
   router.post('/:id', csrf, async (req, res) => {
     const item = await owned(req, actionableStatuses);
