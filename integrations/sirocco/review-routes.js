@@ -7,6 +7,9 @@ const { createHash, randomBytes, timingSafeEqual } = require('node:crypto');
 const { Connector } = require('./client');
 const { complete } = require('./outbox');
 const { performAction } = require('./review-actions');
+const { caseTimeline } = require('./case-timeline');
+const { exportCaseEvidence } = require('./case-evidence');
+const { hash } = require('./source');
 
 const root = '/sirocco/review';
 const cookieName = 'ecotrack.review';
@@ -125,22 +128,38 @@ function createReviewRouter(env) {
   router.get('/', async (req, res) => {
     const reviewer = actor(req);
     if (!reviewer) return render(res);
-    const filter = { $or: [{ reviewer }, { reviewVersion: 2, supplementer: reviewer }], status: { $in: ['active', 'verified', 'rejected'] } };
-    if (['active', 'verified', 'rejected'].includes(req.query.status)) filter.status = req.query.status;
+    const filter = { $or: [{ reviewer }, { reviewVersion: 2, supplementer: reviewer }], status: { $in: visibleStatuses } };
+    if (visibleStatuses.includes(req.query.status)) filter.status = req.query.status;
     const items = await collection().find(filter,
       { projection: { status: 1, variables: 1, reviewState: 1, reviewReason: 1 } }).sort({ createdAt: -1 }).limit(30).toArray();
     render(res, { items, selectedStatus: req.query.status, csrf: req.session.csrf });
   });
-  function owned(req) {
+  const visibleStatuses = ['pending', 'retry', 'blocked', 'active', 'verified', 'rejected'];
+  const actionableStatuses = ['active', 'verified', 'rejected'];
+  function owned(req, statuses = visibleStatuses) {
     if (!actor(req) || !/^[a-f0-9]{64}$/.test(req.params.id)) return null;
     return collection().findOne({ _id: req.params.id, $or: [{ reviewer: actor(req) }, { reviewVersion: 2, supplementer: actor(req) }],
-      status: { $in: ['active', 'verified', 'rejected'] } });
+      status: { $in: statuses } });
   }
   async function evidence(item) {
     const bytes = await connector.request('/objects', undefined, { 'X-Core-Object': item.objectKey, 'X-Core-Clean': 'true' }, true);
     if (createHash('sha256').update(bytes).digest('hex') !== item.snapshotHash) throw new Error('Checksum sai');
     return JSON.parse(bytes.toString('utf8'));
   }
+  router.get('/:id/evidence.json', async (req, res) => {
+    if (!actor(req)) return render(res, { error: 'Hãy đăng nhập để tải chứng cứ.' }, 401);
+    const item = await owned(req);
+    if (!item) return render(res, { error: 'Không tìm thấy việc xác minh được giao cho bạn.' }, 404);
+    if (!item.steps?.receipt) return render(res, { error: 'Chứng cứ đang chờ quét tại Core.' }, 409);
+    let bundle;
+    try { bundle = await exportCaseEvidence(item, connector); }
+    catch (error) {
+      if (error.code === 'CASE_EVIDENCE_NOT_READY')
+        return render(res, { error: 'Kết quả đang được đối soát. Hãy tải lại hồ sơ trước khi xuất chứng cứ.' }, 409);
+      throw error;
+    }
+    res.attachment(`ecotrack-${item._id}.json`).json(bundle);
+  });
   router.get('/:id', async (req, res) => {
     if (!actor(req)) return res.redirect(root);
     const item = await owned(req);
@@ -153,10 +172,14 @@ function createReviewRouter(env) {
         task = tasks.data?.find(t => t.assignee === actor(req));
       }
     }
-    render(res, { item, task, pending, canRetry: pending?.actor === actor(req), source: await evidence(item), csrf: req.session.csrf });
+    if (typeof item.snapshotText !== 'string' || hash(item.snapshotText) !== item.snapshotHash)
+      throw Object.assign(new Error('Chứng cứ nguồn không khớp'), { code: 'CASE_EVIDENCE_INVALID' });
+    const source = item.steps?.receipt ? await evidence(item) : JSON.parse(item.snapshotText);
+    render(res, { item, task, pending, canRetry: pending?.actor === actor(req), source,
+      timeline: caseTimeline(item, source), csrf: req.session.csrf });
   });
   router.post('/:id', csrf, async (req, res) => {
-    const item = await owned(req);
+    const item = await owned(req, actionableStatuses);
     if (!item) return render(res, { error: 'Không tìm thấy việc xác minh được giao cho bạn.' }, 404);
     const { decision } = req.body;
     if (item.reviewVersion === 2) {

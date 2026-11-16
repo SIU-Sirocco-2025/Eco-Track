@@ -25,6 +25,11 @@ li, .decision { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center
 li { justify-content: space-between; }
 .status { color: #34594b; }
 .error { color: #8a301f; }
+.case-timeline { padding-inline-start: 1.5rem; }
+.case-timeline li { display: list-item; overflow-wrap: anywhere; }
+.case-timeline p, .case-timeline time { margin-block: .25rem; }
+.case-timeline time, .case-timeline small { display: block; }
+.case-timeline .digest { overflow-wrap: anywhere; }
 @media (max-width: 32rem) {
   h1 { font-size: 1.6rem; }
   dl { display: block; }

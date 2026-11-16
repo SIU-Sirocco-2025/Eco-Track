@@ -80,7 +80,7 @@ async function dispatch(collection, client, id, now = new Date()) {
     if (!item.steps.uploaded) {
       const upload = await client.request('/objects', bytes, { 'X-Core-Object': item.objectKey, 'X-Core-Operation-Id': item.operations.upload });
       if (upload.checksum !== item.snapshotHash || upload.size !== bytes.length) fail('CONNECTOR_UPLOAD_INVALID');
-      await checkpoint({ 'steps.uploaded': true });
+      await checkpoint({ 'steps.uploaded': true, 'steps.uploadedAt': new Date() });
     }
     if (!item.steps.receipt) {
       const receipt = await client.request('/objects/promote', bytes, { 'X-Core-Object': item.objectKey, 'X-Core-Operation-Id': item.operations.promote });
@@ -95,7 +95,7 @@ async function dispatch(collection, client, id, now = new Date()) {
         businessKey: item.businessKey, variables: item.variables }, item.operations.start);
       if (!identifier.test(process?.id || '')) fail('CONNECTOR_PROCESS_INVALID');
       processId = process.id;
-      await checkpoint({ 'steps.processId': processId });
+      await checkpoint({ 'steps.processId': processId, 'steps.startedAt': new Date() });
     }
     await checkpoint({ status: 'active', lastError: null, lastHttpStatus: null, rateLimitUntil: null, lastAttemptAt: new Date() });
   } catch (error) {

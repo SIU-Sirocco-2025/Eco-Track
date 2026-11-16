@@ -1,6 +1,18 @@
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 # Xác minh số đo và yêu cầu bổ sung
 
+## Lịch sử và gói chứng cứ
+
+Mở hồ sơ được giao để xem số đo nguồn, chứng cứ đã gửi, kết quả quét, việc trong Core, người xử lý và kết quả được ghi lại ở EcoTrack. Với bước cũ thiếu thời điểm, trang hiển thị **Chưa có thời điểm ghi nhận**. Hồ sơ đang chờ gửi lại hiển thị lịch thử và lý do nếu có.
+
+Người được phân công có thể tải gói JSON sau khi chứng cứ nguồn đã được quét. Gói chứa bản nguồn và các chứng cứ tác vụ đã đối soát mà Core còn lưu. Gói v1 có phạm vi source-only và để kết luận trong danh mục là null. Gói v2 có phạm vi source-and-actions, kết luận phải khớp tệp tác vụ cuối. Mã SHA-256 kiểm tra nội dung từng tệp và danh mục gói.
+
+```text
+node scripts/verify-sirocco-evidence.js FILE [SHA256_TIN_CAY]
+```
+
+Nếu cần đối chiếu với bản đã nhận trước đó, lấy mã băm danh mục từ một kênh đáng tin cậy khác rồi truyền vào lệnh. Gói tự chứa mã băm giúp kiểm tính nhất quán. Người có thể sửa cả gói lẫn mã băm có thể tạo gói khác, nên mã này không xác thực danh tính nguồn phát hành.
+
 Quy trình v2 giao số đo cho người xác minh. Người đó ghi lý do để xác minh, từ chối hoặc yêu cầu người được chỉ định bổ sung. Người bổ sung đọc yêu cầu và gửi nội dung trả lời; công việc quay lại người xác minh. Có thể lặp vòng bổ sung. Kết luận chỉ áp dụng cho phiên bản số đo lưu trong hồ sơ.
 
 ## Chuẩn bị
