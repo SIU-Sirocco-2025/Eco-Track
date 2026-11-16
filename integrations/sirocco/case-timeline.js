@@ -8,7 +8,7 @@ const actionLabels = {
 const errorDescriptions = {
   INVALID_CONNECTOR: 'Core không chấp nhận credential của EcoTrack. Báo người quản trị kiểm quyền kết nối.',
   CONNECTOR_HTTP_401: 'Core không chấp nhận credential của EcoTrack. Báo người quản trị kiểm quyền kết nối.',
-  CONNECTOR_SCOPE_REQUIRED: 'Credential của EcoTrack thiếu quyền cần thiết. Báo người quản trị kiểm quyền kết nối.',
+  CONNECTOR_SCOPE_DENIED: 'Credential của EcoTrack thiếu quyền cần thiết. Báo người quản trị kiểm quyền kết nối.',
   CONNECTOR_HTTP_429: 'Core đang giới hạn tốc độ nhận yêu cầu.',
   CONNECTOR_TIMEOUT: 'EcoTrack chưa nhận phản hồi kịp thời từ Core.',
   CONNECTOR_UNAVAILABLE: 'EcoTrack tạm thời không kết nối được với Core.',

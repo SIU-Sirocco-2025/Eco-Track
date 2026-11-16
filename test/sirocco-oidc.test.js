@@ -150,10 +150,18 @@ test('OIDC từ chối chữ ký/issuer/audience/nonce/thời hạn sai và call
         const html = await detail.text();
         assert.match(html, /Chờ đồng bộ kết quả/);
         const csrf = html.match(/name="csrf" value="([a-f0-9]{64})"/)[1];
-        const post = (target, token = csrf) => fetch(`${root}/${target}/reconcile`, { method: 'POST', redirect: 'manual',
-          headers: { Cookie: cookie }, body: new URLSearchParams({ csrf: token, taskId: 'task-1' }) });
+        const post = (target, token = csrf, taskId = 'task-1') => fetch(`${root}/${target}/reconcile`, { method: 'POST', redirect: 'manual',
+          headers: { Cookie: cookie }, body: new URLSearchParams({ csrf: token, taskId }) });
         assert.equal((await post(other)).status, 404);
         assert.equal((await post(id, 'wrong')).status, 403);
+        const callsBeforeDenied = coreRequests.length;
+        assert.equal((await post(id, csrf, 'task-2')).status, 404);
+        await collection.updateOne({ _id: id }, { $set: { reviewVersion: 1 } });
+        assert.equal((await post(id)).status, 404);
+        await collection.updateOne({ _id: id }, { $set: { reviewVersion: 2 }, $unset: { 'actions.task-1.evidence': '' } });
+        assert.equal((await post(id)).status, 404);
+        assert.equal(coreRequests.length, callsBeforeDenied);
+        await collection.updateOne({ _id: id }, { $set: { 'actions.task-1.evidence': draft.actions['task-1'].evidence } });
         assert.match(await (await get('/?status=reconciling')).text(), new RegExp(id));
         assert.doesNotMatch(await (await get('/?status=awaiting-person')).text(), new RegExp(id));
         unavailable = true;
@@ -161,6 +169,7 @@ test('OIDC từ chối chữ ký/issuer/audience/nonce/thời hạn sai và call
         assert.equal(degraded.status, 200);
         const degradedHtml = await degraded.text();
         assert.match(degradedHtml, /Trang đang hiển thị bản ghi đã lưu ở EcoTrack/);
+        assert.match(degradedHtml, /pm25 · 10 ug\/m3/);
         assert.doesNotMatch(degradedHtml, /Đối soát kết quả đã gửi|Gửi lại yêu cầu đang chờ/);
         unavailable = false;
         mismatch = true;
