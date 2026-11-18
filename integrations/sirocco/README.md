@@ -1,9 +1,11 @@
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 # EcoTrack 2025 kết nối Sirocco Core
 
-Adapter đọc bản ghi `HCMCAirHour` trong MongoDB của EcoTrack, đưa snapshot qua kho tệp và ClamAV của Core, tạo workflow xác minh nguồn rồi lưu kết quả trở lại collection `sirocco_outbox`. Nó gọi HTTP qua gateway; không cần mã SchoolOps hoặc credential database/Flowable/S3 của Core.
+Adapter đọc bản ghi `HCMCAirHour` trong MongoDB của EcoTrack, đưa snapshot qua kho tệp và ClamAV của Core, tạo workflow xác minh nguồn rồi lưu kết quả trở lại collection `sirocco_outbox`. Các thao tác đi qua API Gateway bằng credential của EcoTrack.
 
-Người được giao việc có thể xác minh qua trang `/sirocco/review` khi quản trị bật SSO. Lệnh `enqueue` cho phép người vận hành chọn bản ghi cần gửi.
+Với cài đặt mới, làm theo [quy trình xác minh và bổ sung chứng cứ](REVIEW-V2.md) và dùng `install-review`. Manifest mô tả gói BPMN của quy trình này. Lệnh `check` kiểm nối Core và ba dịch vụ EcoTrack dùng. Core v2 có hỗ trợ kiểm riêng trả `readiness: "per-service"`. Phiên bản v2 cũ dùng phép kiểm gộp. SSO và dữ liệu MongoDB cần kiểm qua luồng ứng dụng.
+
+Người được giao việc có thể xác minh qua trang `/sirocco/review` khi quản trị bật SSO. Người vận hành dùng `enqueue-review` cho quy trình mới và `enqueue` cho quy trình v1 mô tả bên dưới.
 
 ## SSO và màn hình xác minh
 

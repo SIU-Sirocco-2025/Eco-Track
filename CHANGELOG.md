@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## Chưa phát hành
+
+- Hướng dẫn kết nối Sirocco dùng BPMN xác minh và bổ sung chứng cứ. `install-review` trả đúng tên biến cài đặt cho phiên bản này.
+- Lệnh `check` xác định dịch vụ Core gặp lỗi nếu Core hỗ trợ kiểm từng dịch vụ. Các bản connector v2 cũ tiếp tục dùng kiểm tra gộp.
+
 ## [v1.1.3](https://github.com/SIU-Sirocco-2025/Eco-Track/releases/tag/v1.1.3) - 2025-12-09
 
 > Phiên bản này tập trung nâng cấp lớp **model dự đoán AQI** (độ phủ quận, tham số LSTM và pipeline dự đoán), trong khi các bản trước (v1.1.0–v1.1.2) chủ yếu bổ sung NGSI‑LD, UI bản đồ và đồng bộ key quận/district trong API & docs.

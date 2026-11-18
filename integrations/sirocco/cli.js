@@ -21,14 +21,23 @@ async function main() {
   const client = new Connector({ url: process.env.CORE_API_URL, token: process.env.CORE_CONNECTOR_TOKEN, deploy: ['install', 'install-review'].includes(command) });
   if (command === 'check') {
     const contract = await client.negotiate();
-    await client.request('/ready');
-    return { status: 'ready', clientId: contract.clientId, contractVersion: contract.version, mode: 'server-integration' };
+    const services = ['workflow', 'storage', 'scanner'];
+    if (contract.serviceReadiness === true) {
+      for (const service of services) {
+        try { await client.request('/ready/' + service); }
+        catch (error) { throw Object.assign(error, { service }); }
+      }
+    } else await client.request('/ready');
+    return { status: 'ready', clientId: contract.clientId, contractVersion: contract.version, mode: 'server-integration',
+      readiness: contract.serviceReadiness === true ? 'per-service' : 'aggregate', services };
   }
   if (['install', 'install-review'].includes(command)) {
     const xml = await readFile(path.join(__dirname, command === 'install' ? 'source-review.bpmn20.xml' : 'review-v2.bpmn20.xml'), 'utf8');
     const digest = hash(xml);
     const result = await client.request('/deployments', { name: 'source-review-' + digest.slice(0,32), xml }, { 'X-Core-Operation-Id': digest + '_deploy' });
-    return { definitionId: result.id, workflowSha256: digest, next: 'Quản trị Core giảm quyền bằng restrict, sau đó đặt SIROCCO_DEFINITION_ID.' };
+    const definitionVariable = command === 'install-review' ? 'SIROCCO_REVIEW_DEFINITION_ID' : 'SIROCCO_DEFINITION_ID';
+    return { definitionId: result.id, workflowSha256: digest, definitionVariable,
+      next: `Quản trị Core giảm quyền bằng restrict, sau đó đặt ${definitionVariable}.` };
   }
   if (!process.env.MONGODB_URL) fail('MONGODB_URL_REQUIRED');
   await mongoose.connect(process.env.MONGODB_URL, { serverSelectionTimeoutMS: 5000 });
@@ -100,5 +109,6 @@ async function main() {
 }
 main().then(result => console.log(JSON.stringify(result, null, 2))).catch(error => {
   const code = /^[A-Z][A-Z0-9_]{0,99}$/.test(error.code || '') ? error.code : 'INTEGRATION_FAILED';
-  console.error(JSON.stringify({ status: 'failed', code })); process.exitCode = 1;
+  console.error(JSON.stringify({ status: 'failed', code, ...(error.service && { service: error.service }) }));
+  process.exitCode = 1;
 });

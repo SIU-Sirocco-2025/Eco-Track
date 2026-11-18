@@ -3,7 +3,7 @@
 
 # Eco-Track 🌿
 
-Tích hợp nền tảng: [Kết nối Sirocco Core](integrations/sirocco/README.md) mô tả cách giữ nguồn quan trắc, gửi workflow/tệp bằng credential riêng và đối soát kết quả về MongoDB. Phần tích hợp này có CLI backend; SSO và giao diện xác minh là các bước phát triển tiếp theo.
+EcoTrack có thể kết nối Sirocco Core để giao việc xác minh số đo. Người xử lý đăng nhập qua SSO, xem nguồn quan trắc và gửi quyết định. EcoTrack lưu kết quả về MongoDB và cho tải gói chứng cứ. [Hướng dẫn kết nối](integrations/sirocco/README.md) · [Quy trình xác minh và bổ sung](integrations/sirocco/REVIEW-V2.md).
   ### Hệ Thống Theo Dõi & Dự Đoán Chất Lượng Không Khí TP.HCM
 
   > "Theo dõi hôm nay để bảo vệ bầu trời ngày mai."

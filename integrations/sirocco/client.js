@@ -22,7 +22,8 @@ class Connector {
     Object.assign(this, { url, token, clientId, deploy, timeout });
   }
   async send(path, body, headers = {}, binary = false) {
-    if (!['/contract', '/ready', '/workflow', '/deployments', '/objects', '/objects/promote', '/objects/receipt'].includes(path) &&
+    if (!['/contract', '/ready', '/ready/workflow', '/ready/storage', '/ready/scanner',
+      '/workflow', '/deployments', '/objects', '/objects/promote', '/objects/receipt'].includes(path) &&
         !/^\/operations\/[a-zA-Z0-9_-]{16,100}$/.test(path)) throw new ConnectorError('CONNECTOR_PATH_INVALID');
     const signal = AbortSignal.timeout(this.timeout);
     try {
