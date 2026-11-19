@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 const express = require('express');
 const methodOverride = require('method-override')
 // const bodyParser = require('body-parser')

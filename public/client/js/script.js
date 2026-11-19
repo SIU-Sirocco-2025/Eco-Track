@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Bản đồ AQI phía client + hành vi UI (nâng cao)
 (function initAQIMap() {
   function aqiClass(aqius) {

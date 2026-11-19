@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Hero Theme - Dark animated globe version
 function initHeroTheme() {
   const heroBreathe = document.getElementById('hero-breathing');

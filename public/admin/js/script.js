@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Show Alert Message
 
 const showAlert = document.querySelector('[show-alert]');

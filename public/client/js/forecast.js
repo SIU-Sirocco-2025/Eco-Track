@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 (function() {
   const districtSelect = document.getElementById('district-select');
   const btnForecast = document.getElementById('btn-forecast');

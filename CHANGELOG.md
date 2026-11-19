@@ -4,6 +4,10 @@
 
 - Hướng dẫn kết nối Sirocco dùng BPMN xác minh và bổ sung chứng cứ. `install-review` trả đúng tên biến cài đặt cho phiên bản này.
 - Lệnh `check` xác định dịch vụ Core gặp lỗi nếu Core hỗ trợ kiểm từng dịch vụ. Các bản connector v2 cũ tiếp tục dùng kiểm tra gộp.
+- Trang so sánh phân biệt thời điểm đóng và thứ tự Core lưu, bỏ phép tính với hai đơn vị khác nhau và báo khi EcoTrack chưa xác nhận lưu.
+- CLI `archive-history` đọc tiếp theo con trỏ Core và `archive-compare` nhận hai phiên bản theo thứ tự A, B được chọn.
+- Bổ sung dòng nhận diện giấy phép GPL-3.0-or-later vào tệp nguồn và mẫu giao diện EcoTrack còn thiếu.
+- Sửa cú pháp tiêu đề cột ID trong mẫu danh sách người dùng quản trị.
 
 ## [v1.1.3](https://github.com/SIU-Sirocco-2025/Eco-Track/releases/tag/v1.1.3) - 2025-12-09
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 tinymce.init({
   selector: 'textarea[textarea-mce]',
   license_key: 'gpl', // thêm dòng này (Community)

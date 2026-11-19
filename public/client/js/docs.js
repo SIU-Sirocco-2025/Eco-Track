@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Base URL switcher
 document.addEventListener('DOMContentLoaded', function() {
   const baseUrlSelect = document.getElementById('baseUrlSelect');

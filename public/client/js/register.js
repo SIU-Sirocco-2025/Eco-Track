@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 (function() {
   const formRequest = document.getElementById('form-request-otp');
   const formVerify = document.getElementById('form-verify-register');
