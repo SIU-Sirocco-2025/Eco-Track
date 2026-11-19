@@ -151,7 +151,7 @@ test('worker mới cùng MongoDB chờ hết hạn 429 trước khi gửi hồ s
     let requests = 0;
     const server = createServer((req, res) => {
       requests++;
-      res.writeHead(429, { 'Retry-After': '7' });
+      res.writeHead(429, { 'X-RateLimit-Reset': '7.25' });
       res.end('{}');
     });
     server.listen(0, '127.0.0.1');
@@ -164,6 +164,8 @@ test('worker mới cùng MongoDB chờ hết hạn 429 trước khi gửi hồ s
         snapshotText: payload, snapshotHash: require('../integrations/sirocco/source').hash(payload),
         steps: {}, operations: { upload: 'synthetic-upload-id' }, nextAttemptAt: new Date(0), createdAt: new Date() })));
       await drainReady(queue, first, 20, sharedCooldown(state, first));
+      const waiting = await queue.findOne({ _id: 'a' });
+      assert.equal(+waiting.nextAttemptAt - +waiting.lastAttemptAt, 7250);
       const next = new Connector(options);
       assert.deepEqual(await drainReady(queue, next, 20, sharedCooldown(state, next)), []);
       assert.equal(requests, 1);
@@ -181,8 +183,9 @@ test('worker mới cùng MongoDB chờ hết hạn 429 trước khi gửi hồ s
 test('connector giữ thời gian chờ của 429 và không lên lịch lại lỗi quyền', async () => {
   let status = 429;
   let retryAfter = '7';
+  let reset = '53';
   const server = createServer((req, res) => {
-    res.writeHead(status, { 'Retry-After': retryAfter, 'Content-Type': 'application/json' });
+    res.writeHead(status, { 'Retry-After': retryAfter, 'X-RateLimit-Reset': reset, 'Content-Type': 'application/json' });
     res.end('{}');
   });
   server.listen(0, '127.0.0.1');
@@ -196,8 +199,15 @@ test('connector giữ thời gian chờ của 429 và không lên lịch lại l
       error.status === 429 && error.retryable && error.retryAfterMs === 7000);
     retryAfter = new Date(Date.now() + 10000).toUTCString();
     await assert.rejects(connector.send('/ready'), error => error.retryAfterMs > 0 && error.retryAfterMs <= 10000);
-    retryAfter = 'invalid delay';
+    retryAfter = '0';
     await assert.rejects(connector.send('/ready'), error => error.retryAfterMs === 0);
+    retryAfter = 'invalid delay';
+    await assert.rejects(connector.send('/ready'), error => error.retryAfterMs === 53000);
+    reset = '99999999999999';
+    await assert.rejects(connector.send('/ready'), error => error.retryAfterMs === 0);
+    status = 503;
+    reset = '53';
+    await assert.rejects(connector.send('/ready'), error => error.status === 503 && error.retryAfterMs === 0);
     status = 401;
     await assert.rejects(connector.send('/ready'), error =>
       error.status === 401 && !error.retryable);

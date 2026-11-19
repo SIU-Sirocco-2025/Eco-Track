@@ -6,10 +6,14 @@ class ConnectorError extends Error {
     Object.assign(this, { code, status, retryable, retryAfterMs });
   }
 }
-function retryAfter(value, now = Date.now()) {
-  if (!value) return 0;
-  const delay = /^\d+$/.test(value) ? Number(value) * 1000 : Date.parse(value) - now;
-  return Number.isFinite(delay) ? Math.min(8640000000000000 - now, Math.max(0, delay)) : 0;
+function retryDelay(response, now = Date.now()) {
+  const retryAfter = response.headers.get('retry-after') ?? '';
+  const delay = /^\d+$/.test(retryAfter) ? Number(retryAfter) * 1000 : Math.max(0, Date.parse(retryAfter) - now);
+  const valid = ms => Number.isSafeInteger(ms) && ms <= 8640000000000000 - now;
+  if (valid(delay)) return delay;
+  const reset = response.headers.get('x-ratelimit-reset') ?? '';
+  const resetDelay = Math.ceil(Number(reset) * 1000);
+  return response.status === 429 && /^\d+(?:\.\d+)?$/.test(reset) && valid(resetDelay) ? resetDelay : 0;
 }
 class Connector {
   constructor({ url, token, clientId = manifest.id, deploy = false, timeout = 45000 }) {
@@ -34,10 +38,11 @@ class Connector {
         body: body === undefined ? undefined : Buffer.isBuffer(body) ? body : JSON.stringify(body),
       });
       if (!result.ok) {
+        const retryable = [408, 429, 500, 502, 503, 504].includes(result.status);
+        const retryAfterMs = retryable ? retryDelay(result) : 0;
         let code = `CONNECTOR_HTTP_${result.status}`;
         try { const data = await result.json(); if (/^[A-Z][A-Z0-9_]{0,79}$/.test(data.error?.code)) code = data.error.code; } catch {}
-        throw new ConnectorError(code, result.status, [408, 429, 500, 502, 503, 504].includes(result.status),
-          retryAfter(result.headers.get('retry-after')));
+        throw new ConnectorError(code, result.status, retryable, retryAfterMs);
       }
       return binary ? Buffer.from(await result.arrayBuffer()) : await result.json();
     } catch (error) {

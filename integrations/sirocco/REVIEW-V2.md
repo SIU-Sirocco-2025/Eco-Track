@@ -70,7 +70,7 @@ node integrations/sirocco/cli.js worker
 
 Tiến trình lấy hồ sơ đến hạn và giữ quyền xử lý tạm thời trong MongoDB. Quyết định được gửi lại với cùng mã thao tác đã lưu để Core nhận biết lần gửi trước. Khi vượt giới hạn thử lại, người đã gửi vẫn có thể mở hồ sơ và dùng thao tác gửi lại trên giao diện.
 
-Khi Core trả HTTP 429, các worker và lệnh `drain` cùng kết nối MongoDB và cùng địa chỉ gateway sẽ dùng chung thời hạn chờ. Thời hạn này được lưu trong MongoDB. Yêu cầu đã bắt đầu trước lúc ghi thời hạn chờ vẫn có thể đến Core. Các ứng dụng dùng database khác chịu giới hạn chung tại gateway.
+Khi Core trả HTTP 429, worker lấy thời gian chờ từ `Retry-After` hoặc từ số giây còn lại trong `X-RateLimit-Reset` của APISIX đi kèm Core. Worker chờ ít nhất khoảng đó và áp dụng backoff của hàng đợi. Các worker và lệnh `drain` cùng MongoDB và cùng địa chỉ gateway dùng chung thời hạn đã lưu. Yêu cầu đã bắt đầu trước lúc ghi thời hạn chờ vẫn có thể đến Core. Gateway mặc định áp hạn mức chung cho các ứng dụng cùng địa chỉ IP.
 
 Worker dành ba giây cho lượt gửi quyết định từ giao diện trước khi xét tự đối soát. Nếu hai lượt vẫn đến Core cùng lúc, chúng dùng chung mã thao tác và nội dung đã lưu. Khi worker dừng đột ngột, worker khác có thể phải chờ quyền xử lý tạm thời hết hạn, tối đa năm phút cho lượt gửi hoặc mười phút cho lượt đối soát.
 
