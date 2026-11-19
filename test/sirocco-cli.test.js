@@ -28,6 +28,10 @@ test('CLI kiểm đúng dịch vụ trên Core mới và vẫn chạy với Core
         isolation: 'application-resources', clientId: manifest.id,
         capabilities: archiveSupported ? [...required, 'records.versions.read', 'records.versions.append'] : required,
         ...(selective ? { serviceReadiness: true } : {}) }));
+    } else if (path.startsWith('/records/observation-decisions/')) {
+      response.end(JSON.stringify(path.endsWith('?before=2')
+        ? { items: [{ version: 1 }], next: null }
+        : { items: Array.from({ length: 20 }, (_, i) => ({ version: 21 - i })), next: 2 }));
     } else if (path === '/deployments') {
       const chunks = [];
       for await (const chunk of request) chunks.push(chunk);
@@ -42,9 +46,9 @@ test('CLI kiểm đúng dịch vụ trên Core mới và vẫn chạy với Core
   await once(server, 'listening');
   const env = { ...process.env, CORE_API_URL: `http://127.0.0.1:${server.address().port}${prefix}`,
     CORE_CONNECTOR_TOKEN: 'sandbox-token-'.repeat(4), SIROCCO_REVIEW_ARCHIVE: 'false' };
-  const cli = async (command) => {
+  const cli = async (...args) => {
     calls.length = 0;
-    const { stdout } = await promisify(execFile)(process.execPath, [join(root, 'cli.js'), command], { env, timeout: 30000 });
+    const { stdout } = await promisify(execFile)(process.execPath, [join(root, 'cli.js'), ...args], { env, timeout: 30000 });
     return JSON.parse(stdout);
   };
   try {
@@ -56,6 +60,16 @@ test('CLI kiểm đúng dịch vụ trên Core mới và vẫn chạy với Core
     archiveSupported = true;
     assert.deepEqual((await cli('check')).services, ['workflow', 'storage', 'scanner', 'records']);
     assert.deepEqual(calls, ['GET /contract', 'GET /ready/workflow', 'GET /ready/storage', 'GET /ready/scanner', 'GET /ready/records']);
+    const key = 'a'.repeat(64);
+    const page = await cli('archive-history', key);
+    assert.equal(page.items.length, 20);
+    assert.equal(page.next, 2);
+    const lastPage = await cli('archive-history', key, String(page.next));
+    assert.deepEqual(lastPage.items, [{ version: 1 }]);
+    assert.equal(lastPage.next, null);
+    assert.deepEqual(calls, ['GET /contract', `GET /records/observation-decisions/${key}/history?before=2`]);
+    await assert.rejects(cli('archive-history', key, '9007199254740993'), error => JSON.parse(error.stderr).code === 'ARCHIVE_VERSION_INVALID');
+    assert.deepEqual(calls, []);
     env.SIROCCO_REVIEW_ARCHIVE = 'false';
     scannerUnavailable = true;
     await assert.rejects(cli('check'), error => {

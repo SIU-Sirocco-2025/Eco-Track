@@ -15,7 +15,7 @@ async function main() {
   if (command === '--help' && args.length === 0) return {
     commands: ['check', 'install', 'install-review', 'workflow-impact DEFINITION_ID', 'enqueue-review MONGO_HOUR_ID SENSOR_ID REASON', 'enqueue MONGO_HOUR_ID', 'drain', 'worker', 'metrics', 'status EVENT_ID',
       'complete EVENT_ID REVIEWER_ID verified|rejected', 'reconcile EVENT_ID', 'retry EVENT_ID',
-      'archive-install', 'archive-drain', 'archive-history SOURCE_KEY', 'archive-export SOURCE_KEY VERSION',
+      'archive-install', 'archive-drain', 'archive-history SOURCE_KEY [BEFORE_VERSION]', 'archive-export SOURCE_KEY VERSION',
       'archive-compare SOURCE_KEY VERSION_A VERSION_B', 'archive-retry EVENT_ID'],
     environment: ['CORE_API_URL', 'CORE_CONNECTOR_TOKEN', 'MONGODB_URL', 'SIROCCO_DEFINITION_ID', 'SIROCCO_REVIEWER_ID'],
     guide: 'integrations/sirocco/README.md',
@@ -23,7 +23,9 @@ async function main() {
   const counts = { check: 0, install: 0, 'install-review': 0, 'workflow-impact': 1, 'enqueue-review': 3, enqueue: 1,
     drain: 0, worker: 0, metrics: 0, status: 1, complete: 3, reconcile: 1, retry: 1,
     'archive-install': 0, 'archive-drain': 0, 'archive-history': 1, 'archive-export': 2, 'archive-compare': 3, 'archive-retry': 1 };
-  if (!(command in counts) || args.length !== counts[command]) fail('USAGE_CHECK_INSTALL_ENQUEUE_DRAIN_STATUS_COMPLETE_RECONCILE_RETRY');
+  if (!Object.hasOwn(counts, command) ||
+      (args.length !== counts[command] && !(command === 'archive-history' && args.length === 2)))
+    fail('USAGE_CHECK_INSTALL_ENQUEUE_DRAIN_STATUS_COMPLETE_RECONCILE_RETRY');
   const recordCapabilities = {
     'archive-install': ['records.schema.publish'],
     'archive-drain': ['records.versions.read', 'records.versions.append'],
@@ -34,7 +36,12 @@ async function main() {
   const client = new Connector({ url: process.env.CORE_API_URL, token: process.env.CORE_CONNECTOR_TOKEN,
     deploy: ['install', 'install-review'].includes(command), recordCapabilities });
   if (command === 'archive-install') return client.request('/records/schemas/' + collectionName, schema);
-  if (command === 'archive-history') return readDecisionHistory(client, args[0]);
+  if (command === 'archive-history') {
+    const cursor = args[1];
+    if (cursor !== undefined && (!/^[1-9]\d*$/.test(cursor) || !Number.isSafeInteger(Number(cursor))))
+      fail('ARCHIVE_VERSION_INVALID');
+    return readDecisionHistory(client, args[0], cursor === undefined ? undefined : Number(cursor));
+  }
   if (command === 'archive-export') {
     if (!/^[1-9]\d*$/.test(args[1])) fail('ARCHIVE_VERSION_INVALID');
     return exportArchivedDecision(client, args[0], Number(args[1]));
