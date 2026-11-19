@@ -3,6 +3,8 @@
 
 ## Lịch sử và gói chứng cứ
 
+Với Core có dịch vụ bản ghi, bật [lưu và so sánh quyết định theo phiên bản nguồn](DECISION-ARCHIVE.md).
+
 Mở hồ sơ được giao để xem số đo nguồn, chứng cứ đã gửi, kết quả quét, việc trong Core, người xử lý và kết quả được ghi lại ở EcoTrack. Với bước cũ thiếu thời điểm, trang hiển thị **Chưa có thời điểm ghi nhận**. Hồ sơ đang chờ gửi lại hiển thị lịch thử và lý do nếu có.
 
 Người được phân công có thể tải gói JSON sau khi chứng cứ nguồn đã được quét. Gói chứa bản nguồn và các chứng cứ tác vụ đã đối soát mà Core còn lưu. Gói v1 có phạm vi source-only và để kết luận trong danh mục là null. Gói v2 có phạm vi source-and-actions, kết luận phải khớp tệp tác vụ cuối. Mã SHA-256 kiểm tra nội dung từng tệp và danh mục gói.
