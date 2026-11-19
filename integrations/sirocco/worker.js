@@ -5,6 +5,7 @@ const { dispatch, complete } = require('./outbox');
 const { performAction } = require('./review-actions');
 const { hash } = require('./source');
 const { completionPending } = require('./case-operations');
+const { publishPendingDecisions } = require('./decision-archive');
 
 function sharedCooldown(state, client) {
   const _id = hash({ gateway: client.url });
@@ -103,14 +104,19 @@ async function drainReady(collection, client, limit = 20, cooldown) {
   return results;
 }
 
-async function runWorker(collection, client, signal, intervalMs = 3000, cooldown) {
+async function runWorker(collection, client, signal, intervalMs = 3000, cooldown, archive = false) {
   while (!signal.aborted) {
     let delay = intervalMs;
     try {
       const results = await drainReady(collection, client, 20, cooldown);
       const limited = results.find(result => result.lastHttpStatus === 429);
       if (limited?.nextAttemptAt) delay = Math.max(delay, +limited.nextAttemptAt - Date.now());
-      if (!limited) delay = Math.max(delay, await recoverCompletions(collection, client, 20, cooldown));
+      if (!limited) {
+        const recoveryDelay = await recoverCompletions(collection, client, 20, cooldown);
+        delay = Math.max(delay, recoveryDelay);
+        if (archive && !recoveryDelay && !(await cooldown?.remaining()))
+          await publishPendingDecisions(collection, client, 10, cooldown);
+      }
       delay = Math.max(delay, (await cooldown?.remaining()) ?? 0);
     } catch {
       console.error('EcoTrack connector: không đọc được hàng đợi, sẽ thử lại.');

@@ -16,19 +16,21 @@ function retryDelay(response, now = Date.now()) {
   return response.status === 429 && /^\d+(?:\.\d+)?$/.test(reset) && valid(resetDelay) ? resetDelay : 0;
 }
 class Connector {
-  constructor({ url, token, clientId = manifest.id, deploy = false, timeout = 45000 }) {
+  constructor({ url, token, clientId = manifest.id, deploy = false, recordCapabilities, timeout = 45000 }) {
     let parsed;
     try { parsed = new URL(url); } catch { throw new ConnectorError('CONNECTOR_CONFIGURATION'); }
     if ((!['https:'].includes(parsed.protocol) && !(parsed.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname))) ||
         parsed.pathname !== '/api/core/connector' || parsed.username || parsed.password || parsed.search || parsed.hash ||
         typeof token !== 'string' || token.length < 32 || token.length > 512 || !/^[a-z][a-z0-9_-]{0,39}$/.test(clientId) ||
         !Number.isInteger(timeout) || timeout < 1 || timeout > 120000) throw new ConnectorError('CONNECTOR_CONFIGURATION');
-    Object.assign(this, { url, token, clientId, deploy, timeout });
+    Object.assign(this, { url, token, clientId, deploy, recordCapabilities, timeout });
   }
   async send(path, body, headers = {}, binary = false) {
     if (!['/contract', '/ready', '/ready/workflow', '/ready/storage', '/ready/scanner',
       '/workflow', '/deployments', '/objects', '/objects/promote', '/objects/receipt'].includes(path) &&
-        !/^\/operations\/[a-zA-Z0-9_-]{16,100}$/.test(path)) throw new ConnectorError('CONNECTOR_PATH_INVALID');
+        !/^\/operations\/[a-zA-Z0-9_-]{16,100}$/.test(path) &&
+        !/^\/records\/[a-z0-9_-]+(?:\/[a-z0-9_-]+)*(?:\?(?:after|before)=[a-z0-9_-]+)?$/.test(path))
+      throw new ConnectorError('CONNECTOR_PATH_INVALID');
     const signal = AbortSignal.timeout(this.timeout);
     try {
       const result = await fetch(this.url + path, {
@@ -52,7 +54,7 @@ class Connector {
   }
   async negotiate() {
     const c = await this.send('/contract');
-    const required = ['operations.journal', 'workflow.typed.scoped', 'workflow.process.start', 'workflow.task.complete',
+    const required = this.recordCapabilities ?? ['operations.journal', 'workflow.typed.scoped', 'workflow.process.start', 'workflow.task.complete',
       'objects.read.scoped', 'objects.quarantine', 'objects.promote.verified', 'objects.scan.receipt',
       ...(this.deploy ? ['workflow.deploy.supported-bpmn'] : [])];
     if (c.contract !== 'sirocco.connector' || c.version !== '2.0' || c.authentication !== 'server-credential' ||

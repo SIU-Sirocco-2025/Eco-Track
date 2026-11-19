@@ -9,6 +9,7 @@ const { complete } = require('./outbox');
 const { performAction, reconcileAction } = require('./review-actions');
 const { caseTimeline } = require('./case-timeline');
 const { exportCaseEvidence } = require('./case-evidence');
+const { exportArchivedDecision, compareArchivedDecisions } = require('./decision-archive');
 const { hash } = require('./source');
 const { operationsFilter, caseStatus } = require('./case-operations');
 
@@ -165,6 +166,39 @@ function createReviewRouter(env) {
     }
     res.attachment(`ecotrack-${item._id}.json`).json(bundle);
   });
+  router.get('/:id/archive.json', async (req, res) => {
+    if (!actor(req)) return render(res, { error: 'Hãy đăng nhập để tải hồ sơ đã lưu tại Core.' }, 401);
+    const item = await owned(req, ['verified', 'rejected']);
+    if (!item) return render(res, { error: 'Không tìm thấy việc xác minh được giao cho bạn.' }, 404);
+    if (item.decisionArchive?.status !== 'archived')
+      return render(res, { error: 'Hồ sơ chưa có phiên bản đã xác nhận tại Core.' }, 409);
+    const exported = await exportArchivedDecision(connector, item.sourceKey, item.decisionArchive.version);
+    if (exported.record.data.caseId !== item._id)
+      return render(res, { error: 'Phiên bản lưu tại Core không khớp hồ sơ này.' }, 409);
+    res.attachment(`ecotrack-core-${item._id}.json`).json(exported);
+  });
+  async function priorArchivedCase(item, reviewer) {
+    if (item.decisionArchive?.status !== 'archived' || item.decisionArchive.version <= 1) return null;
+    return collection().findOne({
+      sourceKey: item.sourceKey, reviewVersion: 2,
+      $or: [{ reviewer }, { supplementer: reviewer }],
+      status: { $in: ['verified', 'rejected'] },
+      'decisionArchive.status': 'archived',
+      'decisionArchive.version': { $lt: item.decisionArchive.version },
+    }, { projection: { 'decisionArchive.version': 1 }, sort: { 'decisionArchive.version': -1 } });
+  }
+  router.get('/:id/compare', async (req, res) => {
+    const reviewer = actor(req);
+    if (!reviewer) return render(res, { error: 'Hãy đăng nhập để so sánh hồ sơ.' }, 401);
+    const item = await owned(req, ['verified', 'rejected']);
+    const prior = item && await priorArchivedCase(item, reviewer);
+    if (!prior) return render(res, { error: 'Chưa có hai phiên bản đã lưu mà bạn được phép xem.' }, 404);
+    const comparison = await compareArchivedDecisions(connector, item.sourceKey,
+      prior.decisionArchive.version, item.decisionArchive.version);
+    if (comparison.entries[0].caseId !== prior._id || comparison.entries[1].caseId !== item._id)
+      return render(res, { error: 'Phiên bản lưu tại Core không khớp hồ sơ này.' }, 409);
+    return render(res, { comparison, caseId: item._id, csrf: req.session.csrf });
+  });
   router.get('/:id', async (req, res) => {
     if (!actor(req)) return res.redirect(root);
     const item = await owned(req);
@@ -196,7 +230,7 @@ function createReviewRouter(env) {
     if (reconciliation) delete req.session.reconciliation;
     render(res, { item, task, pending, canRetry, source, coreStatus, displayStatus: caseStatus(item),
       canReconcile: canRetry && Boolean(pending.evidence),
-      reconciliation,
+      reconciliation, canCompareArchive: Boolean(await priorArchivedCase(item, actor(req))),
       timeline: caseTimeline(item, source), csrf: req.session.csrf });
   });
   router.post('/:id/reconcile', csrf, async (req, res) => {

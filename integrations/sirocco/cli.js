@@ -7,18 +7,42 @@ const { hash, fail } = require('./source');
 const { initOutbox, enqueueHour, complete, reconcileCompletion, summary } = require('./outbox');
 const { drainReady, runWorker, sharedCooldown } = require('./worker');
 const { workflowImpact } = require('./workflow-impact');
+const { collectionName, schema, publishPendingDecisions,
+  readDecisionHistory, exportArchivedDecision, compareArchivedDecisions } = require('./decision-archive');
 require('dotenv').config({ quiet: true });
 async function main() {
   const [command, ...args] = process.argv.slice(2);
   if (command === '--help' && args.length === 0) return {
     commands: ['check', 'install', 'install-review', 'workflow-impact DEFINITION_ID', 'enqueue-review MONGO_HOUR_ID SENSOR_ID REASON', 'enqueue MONGO_HOUR_ID', 'drain', 'worker', 'metrics', 'status EVENT_ID',
-      'complete EVENT_ID REVIEWER_ID verified|rejected', 'reconcile EVENT_ID', 'retry EVENT_ID'],
+      'complete EVENT_ID REVIEWER_ID verified|rejected', 'reconcile EVENT_ID', 'retry EVENT_ID',
+      'archive-install', 'archive-drain', 'archive-history SOURCE_KEY', 'archive-export SOURCE_KEY VERSION',
+      'archive-compare SOURCE_KEY OLD_VERSION NEW_VERSION', 'archive-retry EVENT_ID'],
     environment: ['CORE_API_URL', 'CORE_CONNECTOR_TOKEN', 'MONGODB_URL', 'SIROCCO_DEFINITION_ID', 'SIROCCO_REVIEWER_ID'],
     guide: 'integrations/sirocco/README.md',
   };
-  const counts = { check: 0, install: 0, 'install-review': 0, 'workflow-impact': 1, 'enqueue-review': 3, enqueue: 1, drain: 0, worker: 0, metrics: 0, status: 1, complete: 3, reconcile: 1, retry: 1 };
+  const counts = { check: 0, install: 0, 'install-review': 0, 'workflow-impact': 1, 'enqueue-review': 3, enqueue: 1,
+    drain: 0, worker: 0, metrics: 0, status: 1, complete: 3, reconcile: 1, retry: 1,
+    'archive-install': 0, 'archive-drain': 0, 'archive-history': 1, 'archive-export': 2, 'archive-compare': 3, 'archive-retry': 1 };
   if (!(command in counts) || args.length !== counts[command]) fail('USAGE_CHECK_INSTALL_ENQUEUE_DRAIN_STATUS_COMPLETE_RECONCILE_RETRY');
-  const client = new Connector({ url: process.env.CORE_API_URL, token: process.env.CORE_CONNECTOR_TOKEN, deploy: ['install', 'install-review'].includes(command) });
+  const recordCapabilities = {
+    'archive-install': ['records.schema.publish'],
+    'archive-drain': ['records.versions.read', 'records.versions.append'],
+    'archive-history': ['records.versions.read'],
+    'archive-export': ['records.versions.read', 'objects.read.scoped'],
+    'archive-compare': ['records.versions.read', 'objects.read.scoped'],
+  }[command];
+  const client = new Connector({ url: process.env.CORE_API_URL, token: process.env.CORE_CONNECTOR_TOKEN,
+    deploy: ['install', 'install-review'].includes(command), recordCapabilities });
+  if (command === 'archive-install') return client.request('/records/schemas/' + collectionName, schema);
+  if (command === 'archive-history') return readDecisionHistory(client, args[0]);
+  if (command === 'archive-export') {
+    if (!/^[1-9]\d*$/.test(args[1])) fail('ARCHIVE_VERSION_INVALID');
+    return exportArchivedDecision(client, args[0], Number(args[1]));
+  }
+  if (command === 'archive-compare') {
+    if (!args.slice(1).every(value => /^[1-9]\d*$/.test(value))) fail('ARCHIVE_VERSION_INVALID');
+    return compareArchivedDecisions(client, args[0], Number(args[1]), Number(args[2]));
+  }
   if (command === 'check') {
     const contract = await client.negotiate();
     const services = ['workflow', 'storage', 'scanner'];
@@ -54,7 +78,8 @@ async function main() {
       if (!record) fail('SOURCE_PROVENANCE_MISSING');
       return await require('./review-actions').enqueueReview(collection, hour, record, {
         definitionId: process.env.SIROCCO_REVIEW_DEFINITION_ID, reviewer: process.env.SIROCCO_REVIEWER_ID,
-        supplementer: process.env.SIROCCO_SUPPLEMENTER_ID, ruleVersion: process.env.SIROCCO_RULE_VERSION, reason: args[2] });
+        supplementer: process.env.SIROCCO_SUPPLEMENTER_ID, ruleVersion: process.env.SIROCCO_RULE_VERSION, reason: args[2],
+        archive: process.env.SIROCCO_REVIEW_ARCHIVE === 'true' });
     }
     if (command === 'metrics') {
       const counts = await collection.aggregate([
@@ -85,7 +110,7 @@ async function main() {
       const stop = () => controller.abort();
       process.once('SIGINT', stop);
       process.once('SIGTERM', stop);
-      try { await runWorker(collection, client, controller.signal, 3000, cooldown); }
+      try { await runWorker(collection, client, controller.signal, 3000, cooldown, process.env.SIROCCO_REVIEW_ARCHIVE === 'true'); }
       finally {
         process.off('SIGINT', stop);
         process.off('SIGTERM', stop);
@@ -93,6 +118,16 @@ async function main() {
       return { status: 'stopped' };
     }
     if (command === 'status') return summary(await collection.findOne({ _id: args[0] }));
+    if (command === 'archive-drain') {
+      await client.negotiate();
+      await publishPendingDecisions(collection, client, 10, cooldown);
+      return { status: 'checked' };
+    }
+    if (command === 'archive-retry') {
+      await collection.updateOne({ _id: args[0], 'decisionArchive.status': 'blocked', 'decisionArchive.body': { $exists: true } },
+        { $set: { 'decisionArchive.status': 'pending', 'decisionArchive.attempts': 0, 'decisionArchive.nextAt': new Date() } });
+      return summary(await collection.findOne({ _id: args[0] }));
+    }
     if (command === 'complete') return await complete(collection, client, ...args);
     if (command === 'reconcile') return await reconcileCompletion(collection, client, args[0]);
     if (command === 'retry') {

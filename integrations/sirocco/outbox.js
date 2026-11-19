@@ -27,6 +27,8 @@ async function initOutbox(db) {
   const collection = db.collection('sirocco_outbox');
   await collection.createIndex({ sourceKey: 1, revision: 1 }, { unique: true });
   await collection.createIndex({ status: 1, nextAttemptAt: 1 });
+  await collection.createIndex({ 'decisionArchive.status': 1, 'decisionArchive.nextAt': 1 },
+    { partialFilterExpression: { 'decisionArchive.status': 'pending' } });
   return collection;
 }
 async function enqueueHour(collection, hour, config) {
@@ -52,7 +54,9 @@ function summary(item) {
       attempts: item.recovery.attempts, blocked: item.recovery.blocked, code: item.recovery.code },
     processId: item.steps.processId, objectKey: item.objectKey, snapshotHash: item.snapshotHash,
     receipt: item.steps.receipt, attempts: item.attempts, lastError: item.lastError,
-    completion: item.completion, result: item.result };
+    completion: item.completion, result: item.result,
+    decisionArchive: item.decisionArchive && { status: item.decisionArchive.status,
+      version: item.decisionArchive.version, code: item.decisionArchive.code } };
 }
 function verifyReceipt(receipt, item) {
   if (receipt?.clientId !== item.clientId || receipt.objectKey !== item.objectKey || receipt.checksum !== item.snapshotHash ||

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 const { hash, fail, encode } = require('./source');
 const { randomUUID } = require('node:crypto');
+const { archiveIntent } = require('./decision-archive');
 
 async function enqueueReview(collection, hour, record, config) {
   const { intentFor, summary } = require('./outbox');
@@ -12,6 +13,10 @@ async function enqueueReview(collection, hour, record, config) {
     reviewState: 'awaiting_review', reviewReason: config.reason.trim(), ruleVersion: config.ruleVersion,
     actions: {}, configurationHash: hash({ definitionId: config.definitionId, reviewer: config.reviewer,
       supplementer: config.supplementer, reason: config.reason.trim(), ruleVersion: config.ruleVersion }) });
+  if (config.archive === true) {
+    intent.archiveDecision = true;
+    intent.configurationHash = hash({ review: intent.configurationHash, archiveDecision: true });
+  }
   intent.variables.supplementer = config.supplementer;
   intent.variables.reviewRuleVersion = config.ruleVersion;
   try { await collection.insertOne(intent); } catch (error) { if (error.code !== 11000) throw error; }
@@ -97,11 +102,13 @@ async function reconcileAction(collection, client, id, taskId) {
     if (tasks.data?.length !== 1 || tasks.data[0].taskDefinitionKey !== intent.nextTask ||
         tasks.data[0].assignee !== expectedActor) fail('REVIEW_ACTION_UNCONFIRMED');
   }
-  const patch = { [`actions.${taskId}.appliedAt`]: new Date().toISOString() };
+  const closedAt = new Date().toISOString();
+  const patch = { [`actions.${taskId}.appliedAt`]: closedAt };
   if (intent.terminal) {
     patch.status = intent.action;
     patch.result = { decision: intent.action, reason: intent.reason, revision: intent.revision,
       snapshotHash: intent.snapshotHash, obsoleteAck: intent.obsoleteAck, reportedActor: intent.actor, taskId, processId: item.steps.processId };
+    if (item.archiveDecision === true) patch.decisionArchive = archiveIntent(item, intent, closedAt);
   } else patch.reviewState = intent.obsoleteAck ? 'source_changed' : intent.nextTask === 'review' ? 'awaiting_review' : 'awaiting_supplement';
   // Chỉ một action đang chờ được phép cập nhật state; retry action cũ không quay lùi hồ sơ.
   const applied = await collection.updateOne({ _id: id, pendingAction: taskId }, { $set: patch, $unset: { pendingAction: '', recovery: '', recoveryReadyAt: '' } });

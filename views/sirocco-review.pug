@@ -22,6 +22,22 @@ html(lang="vi")
       if error
         p.error(role="alert")= error
         a(href=root) Về danh sách xác minh
+      else if comparison
+        h2 So sánh hai quyết định từ Core
+        p Cả hai gói chứng cứ đã được đọc lại và đối chiếu.
+        each entry in comparison.entries
+          section
+            h3= 'Phiên bản ' + entry.version
+            dl
+              dt Số đo
+              dd= entry.value + ' ' + entry.unit
+              dt Kết luận
+              dd= labels[entry.decision]
+              dt Phiên bản quy tắc
+              dd= entry.ruleVersion
+              dt Phiên bản nguồn
+              dd.digest= entry.sourceRevision
+        a(href=root + '/' + caseId) Về hồ sơ xác minh
       else if item
         p.status= labels[displayStatus]
         if reconciliation === 'confirmed'
@@ -120,6 +136,18 @@ html(lang="vi")
                     time(datetime=event.nextAt)= 'Lần thử tiếp theo từ ' + event.nextAt
         if item.steps && item.steps.receipt
           a(href=root + '/' + item._id + '/evidence.json') Tải gói chứng cứ JSON
+        if item.decisionArchive
+          h2 Lịch sử quyết định tại Core
+          if item.decisionArchive.status === 'archived'
+            p= 'Đã xác nhận phiên bản ' + item.decisionArchive.version
+            a(href=root + '/' + item._id + '/archive.json') Tải hồ sơ và chứng cứ từ Core
+            if canCompareArchive
+              p
+                a(href=root + '/' + item._id + '/compare') So sánh với quyết định trước
+          else if item.decisionArchive.status === 'blocked'
+            p Quyết định đã lưu tại EcoTrack. Người vận hành cần kiểm tra việc lưu lịch sử tại Core.
+          else
+            p Quyết định đã lưu tại EcoTrack. Đang chờ Core xác nhận phiên bản lịch sử.
         if item.reviewVersion === 2 && task
           form.decision(action=root + '/' + item._id method="post")
             input(type="hidden" name="csrf" value=csrf)
