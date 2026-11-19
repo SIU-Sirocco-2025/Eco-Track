@@ -2,7 +2,7 @@
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
 const { test } = require('node:test');
-const { publishPendingDecisions } = require('../integrations/sirocco/decision-archive');
+const { publishDecision, publishPendingDecisions } = require('../integrations/sirocco/decision-archive');
 
 test('một hồ sơ lùi lịch không chặn các hồ sơ đến hạn của cùng nguồn',
   { skip: !process.env.SIROCCO_OIDC_TEST_DATABASE_URL }, async () => {
@@ -44,6 +44,19 @@ test('một hồ sơ lùi lịch không chặn các hồ sơ đến hạn của 
       await queue.updateOne({ _id: 'delayed' }, { $set: { 'decisionArchive.nextAt': new Date(0) } });
       await publishPendingDecisions(queue, client, 10);
       assert.equal((await queue.findOne({ _id: 'delayed' })).decisionArchive.version, 11);
+
+      await queue.insertOne(row('last-attempt', otherSource, new Date(0)));
+      const lastResponse = { async request(path, body) {
+        const result = await client.request(path, body);
+        if (body) await queue.updateOne({ _id: 'last-attempt' },
+          { $set: { 'decisionArchive.status': 'blocked', 'decisionArchive.code': 'CONNECTOR_TIMEOUT' } });
+        return result;
+      } };
+      await publishDecision(queue, lastResponse, 'last-attempt');
+      const confirmed = (await queue.findOne({ _id: 'last-attempt' })).decisionArchive;
+      assert.equal(confirmed.status, 'archived');
+      assert.equal(confirmed.version, 2);
+      assert.equal(confirmed.code, undefined);
     } finally {
       try { await queue.drop(); } finally { await db.close(); }
     }

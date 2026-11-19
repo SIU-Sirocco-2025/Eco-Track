@@ -70,9 +70,12 @@ async function publishDecision(queue, client, id) {
   if (record.recordKey !== item.sourceKey || record.version !== archive.expectedVersion + 1 ||
       record.schemaVersion !== archive.body.schemaVersion || hash(record.data) !== hash(archive.body.data) ||
       hash(record.evidence) !== hash(archive.body.evidence)) fail('ARCHIVE_RECEIPT_INVALID');
-  await queue.updateOne(attempt, { $set: { 'decisionArchive.status': 'archived',
-    'decisionArchive.version': record.version, 'decisionArchive.recordedAt': record.recordedAt },
-  $unset: { 'decisionArchive.code': '', 'decisionArchive.nextAt': '' } });
+  // Một worker khác có thể đã hết lượt thử trong khi phản hồi thành công đang về.
+  await queue.updateOne({ ...attempt, 'decisionArchive.status': { $in: ['pending', 'blocked'] } }, {
+    $set: { 'decisionArchive.status': 'archived', 'decisionArchive.version': record.version,
+      'decisionArchive.recordedAt': record.recordedAt },
+    $unset: { 'decisionArchive.code': '', 'decisionArchive.nextAt': '' },
+  });
   return record;
 }
 
