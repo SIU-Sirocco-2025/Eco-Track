@@ -13,10 +13,7 @@ async function enqueueReview(collection, hour, record, config) {
     reviewState: 'awaiting_review', reviewReason: config.reason.trim(), ruleVersion: config.ruleVersion,
     actions: {}, configurationHash: hash({ definitionId: config.definitionId, reviewer: config.reviewer,
       supplementer: config.supplementer, reason: config.reason.trim(), ruleVersion: config.ruleVersion }) });
-  if (config.archive === true) {
-    intent.archiveDecision = true;
-    intent.configurationHash = hash({ review: intent.configurationHash, archiveDecision: true });
-  }
+  if (config.archive === true) intent.archiveDecision = true;
   intent.variables.supplementer = config.supplementer;
   intent.variables.reviewRuleVersion = config.ruleVersion;
   try { await collection.insertOne(intent); } catch (error) { if (error.code !== 11000) throw error; }

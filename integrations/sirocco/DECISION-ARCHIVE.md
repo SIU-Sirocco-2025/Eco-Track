@@ -6,7 +6,7 @@ Khi một nguồn quan trắc được hiệu chỉnh, mỗi phiên bản nguồ
 ## Cấu hình
 
 1. Quản trị Core cấp thêm `records.schema,records.read,records.write` cho client EcoTrack. Chạy `node integrations/sirocco/cli.js archive-install` với token của đúng client. Lệnh công bố schema cho `observation-decisions`.
-2. Rút quyền `records.schema` sau khi cài. Worker cần `records.read,records.write` ngoài quyền vận hành cũ. Bật `SIROCCO_REVIEW_ARCHIVE=true` cho tiến trình tạo hồ sơ v2 và worker. Cấu hình được lưu cùng hồ sơ mới. Các hồ sơ tạo trước đó giữ quy trình hiện hành.
+2. Rút quyền `records.schema` sau khi cài. Worker cần `records.read,records.write` ngoài quyền vận hành cũ. Bật `SIROCCO_REVIEW_ARCHIVE=true` cho tiến trình tạo hồ sơ v2 và worker, rồi chạy `cli.js check` để kiểm thêm dịch vụ bản ghi. Luồng đặt việc thủ công và luồng tự tạo từ quy tắc dùng cùng tùy chọn. Chính sách lưu lịch sử của hồ sơ được chốt khi tạo và giữ nguyên khi phát lại cùng nguồn.
 3. Trên hồ sơ đã chốt, trang chi tiết phân biệt đang chờ, đã xác nhận phiên bản và cần xử lý. Người vận hành xem mã bằng `cli.js status CASE_ID` và dùng `archive-retry CASE_ID` sau khi sửa nguyên nhân. Dùng `archive-drain` để chạy một lượt gửi có giới hạn.
 
 Quyết định nghiệp vụ và ý định lưu lịch sử ghi cùng lần cập nhật MongoDB sau khi xác nhận workflow. Khi lưu lịch sử bị gián đoạn, quyết định đã lưu vẫn xuất hiện ở EcoTrack. Worker lưu phiên bản kỳ vọng trước khi gửi và gửi lại đúng body, đúng mã sau khi mất phản hồi. Mã 412 cho biết một lệnh khác đã ghi phiên bản tiếp theo. Worker có thể đọc phiên bản mới rồi gửi lại ý định cũ với điều kiện mới.

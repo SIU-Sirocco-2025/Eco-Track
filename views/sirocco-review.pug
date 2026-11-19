@@ -25,6 +25,8 @@ html(lang="vi")
       else if comparison
         h2 So sánh hai quyết định từ Core
         p Cả hai gói chứng cứ đã được đọc lại và đối chiếu.
+        if archiveGaps
+          p(role="status") Còn hồ sơ cùng nguồn chưa lưu xong tại Core.
         each entry in comparison.entries
           section
             h3= 'Phiên bản ' + entry.version
@@ -33,6 +35,8 @@ html(lang="vi")
               dd= entry.value + ' ' + entry.unit
               dt Kết luận
               dd= labels[entry.decision]
+              dt Lý do người xử lý
+              dd= entry.reason
               dt Phiên bản quy tắc
               dd= entry.ruleVersion
               dt Phiên bản nguồn
@@ -143,7 +147,7 @@ html(lang="vi")
             a(href=root + '/' + item._id + '/archive.json') Tải hồ sơ và chứng cứ từ Core
             if canCompareArchive
               p
-                a(href=root + '/' + item._id + '/compare') So sánh với quyết định trước
+                a(href=root + '/' + item._id + '/compare') So sánh với quyết định đã lưu trước
           else if item.decisionArchive.status === 'blocked'
             p Quyết định đã lưu tại EcoTrack. Người vận hành cần kiểm tra việc lưu lịch sử tại Core.
           else

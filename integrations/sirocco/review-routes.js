@@ -197,7 +197,11 @@ function createReviewRouter(env) {
       prior.decisionArchive.version, item.decisionArchive.version);
     if (comparison.entries[0].caseId !== prior._id || comparison.entries[1].caseId !== item._id)
       return render(res, { error: 'Phiên bản lưu tại Core không khớp hồ sơ này.' }, 409);
-    return render(res, { comparison, caseId: item._id, csrf: req.session.csrf });
+    const outstanding = await collection().findOne({
+      sourceKey: item.sourceKey, $or: [{ reviewer }, { supplementer: reviewer }],
+      'decisionArchive.status': { $in: ['pending', 'blocked'] },
+    }, { projection: { _id: 1 } });
+    return render(res, { comparison, archiveGaps: Boolean(outstanding), caseId: item._id, csrf: req.session.csrf });
   });
   router.get('/:id', async (req, res) => {
     if (!actor(req)) return res.redirect(root);

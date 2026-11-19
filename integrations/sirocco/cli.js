@@ -46,6 +46,12 @@ async function main() {
   if (command === 'check') {
     const contract = await client.negotiate();
     const services = ['workflow', 'storage', 'scanner'];
+    if (process.env.SIROCCO_REVIEW_ARCHIVE === 'true') {
+      const required = ['records.versions.read', 'records.versions.append'];
+      if (!contract.serviceReadiness || required.some(capability => !contract.capabilities.includes(capability)))
+        fail('ARCHIVE_CAPABILITY_MISSING');
+      services.push('records');
+    }
     if (contract.serviceReadiness === true) {
       for (const service of services) {
         try { await client.request('/ready/' + service); }

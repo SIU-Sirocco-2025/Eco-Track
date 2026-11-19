@@ -26,7 +26,7 @@ function archiveIntent(item, action, closedAt) {
   files.push({ key: item.objectKey, receiptId: item.steps.receipt.id, sha256: item.snapshotHash });
   files.sort((a, b) => a.key.localeCompare(b.key, 'en'));
   return {
-    status: 'pending', attempts: 0, nextAt: new Date(closedAt), closedAt,
+    status: 'pending', attempts: 0, nextAt: new Date(closedAt),
     operationId: hash({ archive: collectionName, caseId: item._id }) + '_archive',
     body: {
       schemaVersion: schema.version,
@@ -44,13 +44,6 @@ async function publishDecision(queue, client, id) {
   let item = await queue.findOne({ _id: id, 'decisionArchive.status': 'pending' });
   if (!item) return;
   const path = recordPath(item.sourceKey);
-  const { closedAt } = item.decisionArchive;
-  const prior = await queue.findOne({ sourceKey: item.sourceKey,
-    'decisionArchive.status': 'pending',
-    $or: [{ 'decisionArchive.closedAt': { $lt: closedAt } },
-      { 'decisionArchive.closedAt': closedAt, _id: { $lt: item._id } }],
-  }, { projection: { _id: 1 } });
-  if (prior) return;
   const guard = { _id: id, 'decisionArchive.status': 'pending', 'decisionArchive.operationId': item.decisionArchive.operationId };
   if (item.decisionArchive.expectedVersion === undefined) {
     let head = 0;
@@ -152,9 +145,10 @@ async function compareArchivedDecisions(client, sourceKey, earlier, later) {
   if (!Number.isInteger(earlier) || !Number.isInteger(later) || earlier < 1 || later <= earlier)
     fail('ARCHIVE_VERSION_INVALID');
   const versions = await Promise.all([earlier, later].map(version => exportArchivedDecision(client, sourceKey, version)));
-  const entries = versions.map(({ record, bundle }) => ({
-    version: record.version, ...record.data, manifestSha256: bundle.manifestSha256,
-  }));
+  const entries = versions.map(({ record, bundle }) => {
+    const action = JSON.parse(Buffer.from(bundle.content[`actions/${record.evidence.taskId}.json`], 'base64'));
+    return { version: record.version, ...record.data, reason: action.reason, manifestSha256: bundle.manifestSha256 };
+  });
   const [first, second] = entries;
   if (first.caseId === second.caseId || first.sourceRevision === second.sourceRevision)
     fail('ARCHIVE_DUPLICATE_SOURCE_REVISION');

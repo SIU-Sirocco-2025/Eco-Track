@@ -33,7 +33,8 @@ async function enqueueFlaggedHour(db, hour, env) {
     const reason = reviewReason(snapshot, rule);
     if (reason) results.push(await enqueueReview(collection, hour, record, {
       definitionId: env.SIROCCO_REVIEW_DEFINITION_ID, reviewer: env.SIROCCO_REVIEWER_ID,
-      supplementer: env.SIROCCO_SUPPLEMENTER_ID, ruleVersion: rule.version, reason }));
+      supplementer: env.SIROCCO_SUPPLEMENTER_ID, ruleVersion: rule.version, reason,
+      archive: env.SIROCCO_REVIEW_ARCHIVE === 'true' }));
   }
   return results;
 }
