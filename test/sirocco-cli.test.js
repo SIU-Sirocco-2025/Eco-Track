@@ -16,6 +16,7 @@ test('CLI kiểm đúng dịch vụ trên Core mới và vẫn chạy với Core
   const prefix = '/api/core/connector';
   const calls = [];
   let selective = true;
+  let archiveSupported = false;
   let scannerUnavailable = false;
   let deployedWorkflow;
   const server = createServer(async (request, response) => {
@@ -24,7 +25,8 @@ test('CLI kiểm đúng dịch vụ trên Core mới và vẫn chạy với Core
     response.setHeader('Content-Type', 'application/json');
     if (path === '/contract') {
       response.end(JSON.stringify({ contract: 'sirocco.connector', version: '2.0', authentication: 'server-credential',
-        isolation: 'application-resources', clientId: manifest.id, capabilities: required,
+        isolation: 'application-resources', clientId: manifest.id,
+        capabilities: archiveSupported ? [...required, 'records.versions.read', 'records.versions.append'] : required,
         ...(selective ? { serviceReadiness: true } : {}) }));
     } else if (path === '/deployments') {
       const chunks = [];
@@ -39,7 +41,7 @@ test('CLI kiểm đúng dịch vụ trên Core mới và vẫn chạy với Core
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const env = { ...process.env, CORE_API_URL: `http://127.0.0.1:${server.address().port}${prefix}`,
-    CORE_CONNECTOR_TOKEN: 'sandbox-token-'.repeat(4) };
+    CORE_CONNECTOR_TOKEN: 'sandbox-token-'.repeat(4), SIROCCO_REVIEW_ARCHIVE: 'false' };
   const cli = async (command) => {
     calls.length = 0;
     const { stdout } = await promisify(execFile)(process.execPath, [join(root, 'cli.js'), command], { env, timeout: 30000 });
@@ -48,6 +50,13 @@ test('CLI kiểm đúng dịch vụ trên Core mới và vẫn chạy với Core
   try {
     assert.equal((await cli('check')).readiness, 'per-service');
     assert.deepEqual(calls, ['GET /contract', 'GET /ready/workflow', 'GET /ready/storage', 'GET /ready/scanner']);
+    env.SIROCCO_REVIEW_ARCHIVE = 'true';
+    await assert.rejects(cli('check'), error => JSON.parse(error.stderr).code === 'ARCHIVE_CAPABILITY_MISSING');
+    assert.deepEqual(calls, ['GET /contract']);
+    archiveSupported = true;
+    assert.deepEqual((await cli('check')).services, ['workflow', 'storage', 'scanner', 'records']);
+    assert.deepEqual(calls, ['GET /contract', 'GET /ready/workflow', 'GET /ready/storage', 'GET /ready/scanner', 'GET /ready/records']);
+    env.SIROCCO_REVIEW_ARCHIVE = 'false';
     scannerUnavailable = true;
     await assert.rejects(cli('check'), error => {
       assert.deepEqual(JSON.parse(error.stderr), { status: 'failed', code: 'CONNECTOR_SERVICE_UNAVAILABLE', service: 'scanner' });

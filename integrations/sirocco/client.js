@@ -26,7 +26,7 @@ class Connector {
     Object.assign(this, { url, token, clientId, deploy, recordCapabilities, timeout });
   }
   async send(path, body, headers = {}, binary = false) {
-    if (!['/contract', '/ready', '/ready/workflow', '/ready/storage', '/ready/scanner',
+    if (!['/contract', '/ready', '/ready/workflow', '/ready/storage', '/ready/scanner', '/ready/records',
       '/workflow', '/deployments', '/objects', '/objects/promote', '/objects/receipt'].includes(path) &&
         !/^\/operations\/[a-zA-Z0-9_-]{16,100}$/.test(path) &&
         !/^\/records\/[a-z0-9_-]+(?:\/[a-z0-9_-]+)*(?:\?(?:after|before)=[a-z0-9_-]+)?$/.test(path))
