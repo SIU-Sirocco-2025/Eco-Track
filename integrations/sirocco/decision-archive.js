@@ -144,19 +144,26 @@ async function exportArchivedDecision(client, sourceKey, version) {
   return { record, bundle };
 }
 
-async function compareArchivedDecisions(client, sourceKey, earlier, later) {
-  if (!Number.isInteger(earlier) || !Number.isInteger(later) || earlier < 1 || later <= earlier)
+async function compareArchivedDecisions(client, sourceKey, versionA, versionB) {
+  if (!Number.isSafeInteger(versionA) || !Number.isSafeInteger(versionB) ||
+      versionA < 1 || versionB < 1 || versionA === versionB)
     fail('ARCHIVE_VERSION_INVALID');
-  const versions = await Promise.all([earlier, later].map(version => exportArchivedDecision(client, sourceKey, version)));
+  const versions = await Promise.all([versionA, versionB].map(version => exportArchivedDecision(client, sourceKey, version)));
   const entries = versions.map(({ record, bundle }) => {
     const action = JSON.parse(Buffer.from(bundle.content[`actions/${record.evidence.taskId}.json`], 'base64'));
-    return { version: record.version, ...record.data, reason: action.reason, manifestSha256: bundle.manifestSha256 };
+    if (!Number.isFinite(Date.parse(record.data.closedAt)) || !Number.isFinite(Date.parse(record.recordedAt)))
+      fail('ARCHIVE_RECEIPT_INVALID');
+    return { ...record.data, version: record.version, recordedAt: record.recordedAt,
+      reason: action.reason, manifestSha256: bundle.manifestSha256 };
   });
   const [first, second] = entries;
   if (first.caseId === second.caseId || first.sourceRevision === second.sourceRevision)
     fail('ARCHIVE_DUPLICATE_SOURCE_REVISION');
-  return { sourceKey, entries, comparableUnit: first.unit === second.unit,
-    valueDelta: first.unit === second.unit ? second.value - first.value : null };
+  const closeDelta = Date.parse(second.closedAt) - Date.parse(first.closedAt);
+  const comparableUnit = first.unit === second.unit;
+  return { sourceKey, scope: 'selected-core-committed-versions', entries,
+    closeOrder: closeDelta === 0 ? 'tie' : closeDelta > 0 ? 'a-before-b' : 'b-before-a',
+    sourceOrder: 'unknown', comparableUnit, valueDelta: comparableUnit ? second.value - first.value : null };
 }
 
 module.exports = { collectionName, schema, archiveIntent, publishDecision, publishPendingDecisions,

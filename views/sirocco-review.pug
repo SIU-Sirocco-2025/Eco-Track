@@ -24,13 +24,28 @@ html(lang="vi")
         a(href=root) Về danh sách xác minh
       else if comparison
         h2 So sánh hai quyết định từ Core
-        p Cả hai gói chứng cứ đã được đọc lại và đối chiếu.
+        p Hai gói chứng cứ đã được đối chiếu. Mã phiên bản nguồn nhận diện nội dung, còn phiên bản Core chỉ thứ tự lưu.
+        p Trang này hiển thị hai hồ sơ đã lưu mà bạn được phép xem. Chưa xác định quan hệ hiệu chỉnh giữa hai phiên bản nguồn.
         if archiveGaps
-          p(role="status") Còn hồ sơ cùng nguồn chưa lưu xong tại Core.
-        each entry in comparison.entries
+          p(role="status") Trong phạm vi bạn được xem, còn hồ sơ đã đóng cùng nguồn chưa có bản ghi tại Core.
+        if comparison.closeOrder === 'tie'
+          p Hai hồ sơ có cùng thời điểm ghi nhận đóng.
+        else
+          p= 'EcoTrack ghi nhận đóng hồ sơ ' + (comparison.closeOrder === 'a-before-b' ? 'A trước B.' : 'B trước A.')
+        if comparison.comparableUnit
+          p= 'Chênh lệch số đo (B trừ A) là ' + Number(comparison.valueDelta.toPrecision(12)) + ' ' + comparison.entries[0].unit + '.'
+        else
+          p Hai số đo dùng đơn vị khác nhau. Chênh lệch chưa được tính.
+        each entry, index in comparison.entries
           section
-            h3= 'Phiên bản ' + entry.version
+            h3= index === 0 ? 'Hồ sơ A · Đang xem' : 'Hồ sơ B · Cùng nguồn'
             dl
+              dt Phiên bản Core
+              dd= entry.version
+              dt Thời điểm Core lưu (UTC)
+              dd= entry.recordedAt
+              dt Thời điểm EcoTrack ghi nhận đóng (UTC)
+              dd= entry.closedAt
               dt Số đo
               dd= entry.value + ' ' + entry.unit
               dt Kết luận
@@ -147,7 +162,7 @@ html(lang="vi")
             a(href=root + '/' + item._id + '/archive.json') Tải hồ sơ và chứng cứ từ Core
             if canCompareArchive
               p
-                a(href=root + '/' + item._id + '/compare') So sánh với quyết định đã lưu trước
+                a(href=root + '/' + item._id + '/compare') So sánh với một quyết định đã lưu
           else if item.decisionArchive.status === 'blocked'
             p Quyết định đã lưu tại EcoTrack. Người vận hành cần kiểm tra việc lưu lịch sử tại Core.
           else

@@ -16,7 +16,7 @@ async function main() {
     commands: ['check', 'install', 'install-review', 'workflow-impact DEFINITION_ID', 'enqueue-review MONGO_HOUR_ID SENSOR_ID REASON', 'enqueue MONGO_HOUR_ID', 'drain', 'worker', 'metrics', 'status EVENT_ID',
       'complete EVENT_ID REVIEWER_ID verified|rejected', 'reconcile EVENT_ID', 'retry EVENT_ID',
       'archive-install', 'archive-drain', 'archive-history SOURCE_KEY', 'archive-export SOURCE_KEY VERSION',
-      'archive-compare SOURCE_KEY OLD_VERSION NEW_VERSION', 'archive-retry EVENT_ID'],
+      'archive-compare SOURCE_KEY VERSION_A VERSION_B', 'archive-retry EVENT_ID'],
     environment: ['CORE_API_URL', 'CORE_CONNECTOR_TOKEN', 'MONGODB_URL', 'SIROCCO_DEFINITION_ID', 'SIROCCO_REVIEWER_ID'],
     guide: 'integrations/sirocco/README.md',
   };

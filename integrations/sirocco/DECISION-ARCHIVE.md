@@ -18,9 +18,11 @@ Với credential của EcoTrack có `records.read`, tra lịch sử đã ghi t�
 ```text
 node integrations/sirocco/cli.js archive-history SOURCE_KEY
 node integrations/sirocco/cli.js archive-export SOURCE_KEY CORE_VERSION
-node integrations/sirocco/cli.js archive-compare SOURCE_KEY OLD_VERSION NEW_VERSION
+node integrations/sirocco/cli.js archive-compare SOURCE_KEY VERSION_A VERSION_B
 ```
 
-Mỗi lần đọc lịch sử trả đến 20 phiên bản đã commit. Dùng số phiên bản Core để chọn hồ sơ. Số này thể hiện thứ tự lưu, còn hash `sourceRevision` nhận diện nội dung đo. Danh sách Core có thể thiếu hồ sơ đang chờ ở EcoTrack. Kiểm trạng thái tại EcoTrack khi cần xác nhận toàn bộ hồ sơ của kỳ đã được lưu.
+Mỗi lần đọc lịch sử trả đến 20 phiên bản đã commit. Dùng số phiên bản Core để chọn hồ sơ. Số này thể hiện thứ tự lưu, còn hash `sourceRevision` nhận diện nội dung đo. Lệnh so sánh nhận hai số phiên bản theo thứ tự A, B bất kỳ. `recordedAt` là thời điểm Core lưu và `closedAt` là thời điểm EcoTrack ghi nhận đóng sau khi xác nhận workflow. `closeOrder` phản ánh hai giá trị `closedAt`, kể cả khi bằng nhau. `sourceOrder` là `unknown` vì nguồn hiện chỉ cung cấp danh tính nội dung, chưa có thông tin xác nhận thứ tự hiệu chỉnh. Chênh lệch B trừ A chỉ có giá trị khi hai đơn vị giống nhau.
+
+CLI chỉ thấy các bản ghi đã commit. Trang so sánh chọn một hồ sơ cùng nguồn trong phạm vi người dùng được xem, ưu tiên thời điểm ghi nhận đóng gần nhất về phía hiện tại. Trang báo khi thấy hồ sơ đã đóng cùng nguồn đang chờ, bị chặn hoặc chưa có ý định lưu. Các dấu hiệu này không xác nhận tính đầy đủ của lịch sử ngoài phạm vi quyền truy cập.
 
 Kết quả export gồm bản ghi Core và gói chứng cứ JSON. Core kiểm tham chiếu journal workflow và các biên nhận tệp sạch cùng client khi ghi. EcoTrack đọc lại bytes, kiểm hash, liên kết với phiên bản nguồn và đối chiếu task đã tạo quyết định. Thông tin như phiên bản quy tắc được EcoTrack báo cáo trong bản ghi. Quyền thao tác của người dùng vẫn do EcoTrack áp dụng. Gói hiện giới hạn một tệp nguồn và tối đa 31 tệp hành động.
