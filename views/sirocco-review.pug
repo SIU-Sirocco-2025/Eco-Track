@@ -225,4 +225,4 @@ html(lang="vi")
           p= selectedStatus ? 'Không có công việc được giao ở trạng thái này. Chọn Tất cả để xem các công việc khác.' : 'Bạn chưa được giao bản ghi nào.'
       else
         p Đăng nhập để xem và xử lý các bản ghi được giao cho bạn.
-        a.action(href=root + '/login') Đăng nhập với Sirocco
+        a.action(href=loginPath || root + '/login') Đăng nhập với Sirocco

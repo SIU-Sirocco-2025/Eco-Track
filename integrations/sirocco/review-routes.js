@@ -15,6 +15,8 @@ const { operationsFilter, caseStatus } = require('./case-operations');
 
 const root = '/sirocco/review';
 const cookieName = 'ecotrack.review';
+const caseId = /^[a-f0-9]{64}$/;
+const isCaseId = value => typeof value === 'string' && caseId.test(value);
 const randomToken = () => randomBytes(32).toString('hex');
 const sessionCall = (req, method) => new Promise((resolve, reject) => {
   req.session[method](error => error ? reject(error) : resolve());
@@ -71,7 +73,9 @@ function createReviewRouter(env) {
     const verifier = oidc.randomPKCECodeVerifier();
     const state = oidc.randomState();
     const nonce = oidc.randomNonce();
-    req.session.login = { verifier, state, nonce, expires: Date.now() + 5 * 60_000 };
+    const returnCase = isCaseId(req.query.case) ? req.query.case : undefined;
+    const compare = req.query.view === 'compare';
+    req.session.login = { verifier, state, nonce, returnCase, compare, expires: Date.now() + 5 * 60_000 };
     const url = oidc.buildAuthorizationUrl(config, {
       scope: 'openid', redirect_uri: callback, state, nonce,
       code_challenge_method: 'S256', code_challenge: await oidc.calculatePKCECodeChallenge(verifier),
@@ -108,7 +112,7 @@ function createReviewRouter(env) {
     req.session.reviewer = { sub: claims.sub, expires: Math.min(claims.exp * 1000, Date.now() + 5 * 60_000) };
     req.session.csrf = randomToken();
     await sessionCall(req, 'save');
-    res.redirect(root);
+    res.redirect(isCaseId(login.returnCase) ? `${root}/${login.returnCase}${login.compare ? '/compare' : ''}` : root);
   });
 
   router.use(express.urlencoded({ extended: false, limit: '16kb' }));
@@ -142,7 +146,7 @@ function createReviewRouter(env) {
   const visibleStatuses = ['pending', 'retry', 'blocked', 'active', 'verified', 'rejected'];
   const actionableStatuses = ['active', 'verified', 'rejected'];
   function owned(req, statuses = visibleStatuses) {
-    if (!actor(req) || !/^[a-f0-9]{64}$/.test(req.params.id)) return null;
+    if (!actor(req) || !isCaseId(req.params.id)) return null;
     return collection().findOne({ _id: req.params.id, $or: [{ reviewer: actor(req) }, { reviewVersion: 2, supplementer: actor(req) }],
       status: { $in: statuses } });
   }
@@ -191,7 +195,9 @@ function createReviewRouter(env) {
   }
   router.get('/:id/compare', async (req, res) => {
     const reviewer = actor(req);
-    if (!reviewer) return render(res, { error: 'Hãy đăng nhập để so sánh hồ sơ.' }, 401);
+    if (!reviewer) return render(res, {
+      loginPath: isCaseId(req.params.id) ? `${root}/login?case=${req.params.id}&view=compare` : undefined,
+    }, 401);
     const item = await owned(req, ['verified', 'rejected']);
     const other = item && await anotherArchivedCase(item, reviewer);
     if (!other) return render(res, { error: 'Chưa có hai phiên bản đã lưu mà bạn được phép xem.' }, 404);
@@ -207,7 +213,9 @@ function createReviewRouter(env) {
     return render(res, { comparison, archiveGaps: Boolean(outstanding), caseId: item._id, csrf: req.session.csrf });
   });
   router.get('/:id', async (req, res) => {
-    if (!actor(req)) return res.redirect(root);
+    if (!actor(req)) return render(res, {
+      loginPath: isCaseId(req.params.id) ? `${root}/login?case=${req.params.id}` : undefined,
+    });
     const item = await owned(req);
     if (!item) return render(res, { error: 'Không tìm thấy việc xác minh được giao cho bạn.' }, 404);
     let task, pending;

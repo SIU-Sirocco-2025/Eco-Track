@@ -87,8 +87,8 @@ test('OIDC từ chối chữ ký/issuer/audience/nonce/thời hạn sai và call
     SIROCCO_REVIEW_SESSION_SECRET: 'synthetic-session-secret-12345678901234567890',
     CORE_API_URL: coreUrl, CORE_CONNECTOR_TOKEN: connectorToken,
   }));
-  async function begin() {
-    const response = await fetch(origin + '/sirocco/review/login', { redirect: 'manual' });
+  async function begin(target = '/sirocco/review/login') {
+    const response = await fetch(origin + target, { redirect: 'manual' });
     assert.equal(response.status, 302);
     const authorization = new URL(response.headers.get('location'));
     assert.equal(authorization.searchParams.get('code_challenge_method'), 'S256');
@@ -120,6 +120,21 @@ test('OIDC từ chối chữ ký/issuer/audience/nonce/thời hạn sai và call
       assert.equal(accepted.status, 302);
       assert.equal(accepted.headers.get('location'), '/sirocco/review');
       assert.equal((await callback(login)).status, 400);
+    });
+    await t.test('đăng nhập tiếp tục đúng trang hồ sơ và vẫn kiểm quyền', async () => {
+      const id = hash('unassigned-case');
+      const root = '/sirocco/review';
+      for (const [suffix, expectedStatus] of [['', 200], ['/compare', 401]]) {
+        const target = `${root}/${id}${suffix}`;
+        const response = await fetch(origin + target);
+        assert.equal(response.status, expectedStatus);
+        const html = await response.text();
+        const loginPath = html.match(/href="([^"]+)"[^>]*>Đăng nhập với Sirocco/)[1].replaceAll('&amp;', '&');
+        const accepted = await callback(await begin(loginPath));
+        assert.equal(accepted.headers.get('location'), target);
+        const cookie = accepted.headers.getSetCookie()[0].split(';')[0];
+        assert.equal((await fetch(origin + target, { headers: { Cookie: cookie } })).status, 404);
+      }
     });
     await t.test('chỉ người gửi đối soát được hồ sơ đang chờ và không gửi lại quyết định lên Core', async () => {
       const login = await callback(await begin());

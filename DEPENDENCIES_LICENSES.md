@@ -18,9 +18,9 @@ Xem thêm cấu hình đầy đủ trong [`package.json`](package.json).
 
 | Tên gói | Phiên bản (ví dụ) | Giấy phép | Trang chủ / Repo |
 |--------|--------------------|-----------|-------------------|
-| express | ^4.x | MIT | https://expressjs.com/ |
-| mongoose | ^7.x | MIT | https://mongoosejs.com/ |
-| dotenv | ^16.x | BSD-2-Clause | https://github.com/motdotla/dotenv |
+| express | ^5.1.0 | MIT | https://expressjs.com/ |
+| mongoose | ^8.19.2 | MIT | https://mongoosejs.com/ |
+| dotenv | ^17.2.3 | BSD-2-Clause | https://github.com/motdotla/dotenv |
 | cors | ^2.x | MIT | https://github.com/expressjs/cors |
 | morgan | ^1.x | MIT | https://github.com/expressjs/morgan |
 | cookie-parser | ^1.x | MIT | https://github.com/expressjs/cookie-parser |
@@ -96,12 +96,14 @@ Eco-Track sử dụng các nguồn dữ liệu/tiles mở sau (không phải “
 
 Chi tiết về giấy phép dữ liệu mở do Eco-Track công bố xem tại:
 
-- [`DATA_LICENSE.md`](DATA_LICENSE.md) – **ODC-BY 1.0** cho dataset NGSI‑LD/AQI do hệ thống xuất bản.
+- [`DATA_LICENSE.md`](DATA_LICENSE.md) ghi **CC BY 4.0** và điều kiện ghi công của từng nguồn dữ liệu.
 - Phần “📊 Giấy Phép Dữ Liệu Mở” trong [`README.md`](README.md).
 
 ---
 
 ## 5. Ghi chú chung
+
+MongoDB Community Server là dịch vụ riêng. Gói nguồn EcoTrack chứa cấu hình kết nối, mã ứng dụng và lockfile. Khi dựng bản thử, Docker tải MongoDB Community Server từ registry. Máy chủ MongoDB dùng [SSPL](https://www.mongodb.com/legal/licensing/server-side-public-license/faq). Giấy phép này chưa được OSI chấp thuận. Thư viện Mongoose dùng MIT như đã ghi ở mục 1.
 
 - Mã nguồn Eco-Track được phát hành theo **GNU GPL v3.0** – xem [`LICENSE`](LICENSE).
 - Thư viện/phụ thuộc bên thứ ba giữ nguyên license gốc của họ. Việc sử dụng trong Eco-Track tuân thủ điều kiện tương ứng.

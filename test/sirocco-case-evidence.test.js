@@ -2,6 +2,7 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { exportCaseEvidence, verifyCaseEvidence } = require('../integrations/sirocco/case-evidence');
+const { verifyArchivedDecision } = require('../integrations/sirocco/decision-archive');
 const { caseTimeline } = require('../integrations/sirocco/case-timeline');
 const { hash, encode } = require('../integrations/sirocco/source');
 
@@ -24,6 +25,23 @@ test('gói chứng cứ khớp phiên bản và không chấp nhận sửa byte,
     return Buffer.from(headers['X-Core-Object'] === 'source-key' ? observation : action);
   } };
   const bundle = await exportCaseEvidence(item, client);
+  const archive = { bundle, record: { recordKey: sourceKey, version: 2, recordedAt: '2026-01-01T01:03:00Z',
+    data: { caseId: item._id, sourceRevision: revision, value: 12.5, unit: 'µg/m³', decision: 'verified',
+      closedAt: '2026-01-01T01:02:00Z' }, evidence: { taskId: 'task-1', files: [
+      { key: `observations/${item._id}.json`, receiptId: 'source-receipt', sha256: hash(observation) },
+      { key: `reviews/${item._id}/task-1.json`, receiptId: 'action-receipt', sha256: hash(action) },
+    ] } } };
+  assert.equal(verifyArchivedDecision(archive).source.value, measured.value);
+  for (const tamper of [
+    x => { x.record.data.value++; },
+    x => { x.record.evidence.files[0].sha256 = hash(action); },
+    x => { x.record.evidence.files[0] = x.record.evidence.files[1]; },
+    x => { x.record.evidence.taskId = 'another-task'; },
+  ]) {
+    const modified = structuredClone(archive);
+    tamper(modified);
+    assert.throws(() => verifyArchivedDecision(modified), { code: 'ARCHIVE_RECEIPT_INVALID' });
+  }
   await assert.rejects(exportCaseEvidence({ ...item, result: undefined }, client), { code: 'CASE_EVIDENCE_NOT_READY' });
   await assert.rejects(exportCaseEvidence({ ...item, actions: {} }, client), { code: 'CASE_EVIDENCE_NOT_READY' });
   assert.equal(verifyCaseEvidence(bundle, bundle.manifestSha256).entries, 2);

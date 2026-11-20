@@ -600,8 +600,7 @@ git push -u origin feat/<ten-tinh-nang>
 ---
 
 ## 📊 Giấy Phép Dữ Liệu Mở
-Dữ liệu được xuất bản theo giấy phép **ODC-BY 1.0**.  
-Xem chi tiết tại [DATA_LICENSE.md](DATA_LICENSE.md).
+Dữ liệu do EcoTrack công bố áp dụng **CC BY 4.0** trong phạm vi mô tả. Dữ liệu của nhà cung cấp giữ giấy phép và yêu cầu ghi công riêng. [Phạm vi và ghi công](DATA_LICENSE.md)
 
 ## 📜 Giấy Phép Thư Viện Phụ Thuộc
 

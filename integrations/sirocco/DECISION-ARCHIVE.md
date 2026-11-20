@@ -26,3 +26,13 @@ Mỗi lần đọc lịch sử trả đến 20 phiên bản đã commit. Khi `ne
 CLI chỉ thấy các bản ghi đã commit. Trang so sánh chọn một hồ sơ cùng nguồn trong phạm vi người dùng được xem, ưu tiên thời điểm ghi nhận đóng gần nhất về phía hiện tại. Trang báo khi EcoTrack chưa xác nhận được việc lưu cho hồ sơ khác trong phạm vi này. Trạng thái chờ cũng có thể xuất hiện khi Core đã ghi và EcoTrack mất phản hồi. Nếu lệnh gửi lại thành công, trạng thái chuyển sang đã xác nhận.
 
 Kết quả export gồm bản ghi Core và gói chứng cứ JSON. Core kiểm tham chiếu journal workflow và các biên nhận tệp sạch cùng client khi ghi. EcoTrack đọc lại bytes, kiểm hash, liên kết với phiên bản nguồn và đối chiếu task đã tạo quyết định. Thông tin như phiên bản quy tắc được EcoTrack báo cáo trong bản ghi. Quyền thao tác của người dùng vẫn do EcoTrack áp dụng. Gói hiện giới hạn một tệp nguồn và tối đa 31 tệp hành động.
+
+## Kiểm gói xuất khi ngắt kết nối
+
+Dùng tệp JSON từ `archive-export` hoặc mục tải bản ghi đã lưu trên web. Tạo SHA-256 của tệp khi nhận qua đường tin cậy và lưu giá trị riêng. Sau đó chạy lệnh sau trên máy có Node.js, không cần MongoDB, Core hoặc credential.
+
+```text
+node scripts/verify-sirocco-evidence.js FILE SHA256_TIN_CAY
+```
+
+Với gói archive, tham số SHA-256 kiểm toàn bộ tệp. Công cụ đối chiếu nguồn, quyết định, task, giá trị, đơn vị và hash của từng tệp với các tham chiếu trong bản ghi Core. Kết quả trả lại cửa sổ đo, nguồn, thời điểm đóng và thời điểm Core ghi. Khi bỏ qua SHA-256 tin cậy, kết quả chỉ chứng minh tính nhất quán bên trong tệp. Biên nhận gốc và các bước xác thực được kiểm tại Core lúc ghi. Lệnh cũ cho gói `ecotrack-case-evidence@1` vẫn dùng mã băm manifest làm tham số thứ hai.

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 const { hash, fail } = require('./source');
-const { exportCaseEvidence } = require('./case-evidence');
+const { exportCaseEvidence, verifyCaseEvidence } = require('./case-evidence');
 
 const collectionName = 'observation-decisions';
 const sha256 = /^[a-f0-9]{64}$/;
@@ -137,11 +137,38 @@ async function exportArchivedDecision(client, sourceKey, version) {
   if (!Object.hasOwn(actions, finalTask)) fail('ARCHIVE_RECEIPT_INVALID');
   const bundle = await exportCaseEvidence({ _id: caseId, revision: sourceRevision, objectKey,
     snapshotHash: source.sha256, reviewVersion: 2, result: { decision }, actions }, client);
-  const original = JSON.parse(Buffer.from(bundle.content['source.json'], 'base64'));
-  const terminal = JSON.parse(Buffer.from(bundle.content[`actions/${finalTask}.json`], 'base64'));
-  if (original.sourceKey !== sourceKey || original.value !== record.data.value || original.unit !== record.data.unit ||
-      terminal.action !== decision) fail('ARCHIVE_RECEIPT_INVALID');
+  verifyArchivedDecision({ record, bundle });
   return { record, bundle };
+}
+
+function verifyArchivedDecision(exported) {
+  const { record, bundle } = exported ?? {};
+  const verified = verifyCaseEvidence(bundle);
+  const { data, evidence } = record ?? {};
+  if (data?.caseId !== verified.caseId || data.sourceRevision !== verified.revision ||
+      verified.scope !== 'source-and-actions' || !['verified', 'rejected'].includes(verified.decision) ||
+      data.decision !== verified.decision || !Number.isSafeInteger(record.version) || record.version < 1 ||
+      !Number.isFinite(Date.parse(data.closedAt)) || !Number.isFinite(Date.parse(record.recordedAt)) ||
+      !Array.isArray(evidence?.files) || evidence.files.length !== verified.entries)
+    fail('ARCHIVE_RECEIPT_INVALID');
+  const sourceKey = `observations/${verified.caseId}.json`;
+  const expected = new Map(bundle.manifest.entries.map(entry => [
+    entry.path === 'source.json' ? sourceKey : `reviews/${verified.caseId}/${entry.path.slice('actions/'.length)}`,
+    entry.sha256,
+  ]));
+  for (const file of evidence.files) {
+    if (!file || !expected.has(file.key) || expected.get(file.key) !== file.sha256 ||
+        typeof file.receiptId !== 'string' || !file.receiptId) fail('ARCHIVE_RECEIPT_INVALID');
+    expected.delete(file.key);
+  }
+  const source = JSON.parse(Buffer.from(bundle.content['source.json'], 'base64'));
+  const terminalBytes = bundle.content[`actions/${evidence.taskId}.json`];
+  const terminal = terminalBytes && JSON.parse(Buffer.from(terminalBytes, 'base64'));
+  if (source.sourceKey !== record.recordKey || source.value !== data.value || source.unit !== data.unit ||
+      terminal?.action !== data.decision) fail('ARCHIVE_RECEIPT_INVALID');
+  return { ...verified, sourceKey: record.recordKey, version: record.version, closedAt: data.closedAt,
+    recordedAt: record.recordedAt, source: { provider: source.provider, mode: source.mode, sensorId: source.sensorId,
+      parameter: source.parameter, from: source.from, to: source.to, value: source.value, unit: source.unit } };
 }
 
 async function compareArchivedDecisions(client, sourceKey, versionA, versionB) {
@@ -167,4 +194,4 @@ async function compareArchivedDecisions(client, sourceKey, versionA, versionB) {
 }
 
 module.exports = { collectionName, schema, archiveIntent, publishDecision, publishPendingDecisions,
-  readDecisionHistory, exportArchivedDecision, compareArchivedDecisions };
+  readDecisionHistory, exportArchivedDecision, verifyArchivedDecision, compareArchivedDecisions };
