@@ -117,6 +117,15 @@ node --env-file=/private/ecotrack.env integrations/sirocco/cli.js drain
 
 Lệnh `retry` giữ payload/ID cũ, không vượt quyền Core hoặc đổi nội dung tệp. Với lỗi hoàn tất task, gọi lại `complete` cùng quyết định để replay/đối soát, hoặc `reconcile` nếu journal đã applied. Khi dữ liệu nguồn thay đổi, tạo revision mới thay vì sửa intent đã gửi.
 
+## Lưu một trang lịch sử để đối chiếu ngoại tuyến
+
+```text
+node integrations/sirocco/cli.js archive-snapshot SOURCE_KEY > history.json
+node scripts/verify-sirocco-evidence.js history.json SHA256_TIN_CAY
+```
+
+Lệnh đầu đọc tối đa 20 phiên bản đã ghi tại Core cùng tệp chứng cứ. Tính và giữ SHA-256 của tệp ở nơi người nhận tin cậy. Kết quả đọc ngoại tuyến liệt kê các phiên bản, nguồn và quyết định, đồng thời tính số lượng, giá trị nhỏ nhất và lớn nhất theo từng đơn vị đo. Nếu kết quả có `next`, truyền số đó làm đối số `BEFORE_VERSION` để xuất trang trước. Gói chứa dữ liệu có quyền đọc của ứng dụng và nên được giữ trong kho riêng phù hợp với chính sách dữ liệu. Việc xuất là thao tác đọc. Dữ liệu gốc tiếp tục ở Core.
+
 ## Kiểm thử và giới hạn
 
 ```text

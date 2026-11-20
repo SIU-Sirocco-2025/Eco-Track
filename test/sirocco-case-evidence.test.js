@@ -2,7 +2,7 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { exportCaseEvidence, verifyCaseEvidence } = require('../integrations/sirocco/case-evidence');
-const { verifyArchivedDecision } = require('../integrations/sirocco/decision-archive');
+const { verifyArchivedDecision, verifyDecisionHistory, historyFormat } = require('../integrations/sirocco/decision-archive');
 const { caseTimeline } = require('../integrations/sirocco/case-timeline');
 const { hash, encode } = require('../integrations/sirocco/source');
 
@@ -32,6 +32,14 @@ test('gói chứng cứ khớp phiên bản và không chấp nhận sửa byte,
       { key: `reviews/${item._id}/task-1.json`, receiptId: 'action-receipt', sha256: hash(action) },
     ] } } };
   assert.equal(verifyArchivedDecision(archive).source.value, measured.value);
+  const prior = structuredClone(archive);
+  prior.record.version = 1;
+  const history = { schema: historyFormat, sourceKey, before: 3, next: null, versions: [archive, prior] };
+  assert.deepEqual(verifyDecisionHistory(history).byUnit,
+    [{ unit: 'µg/m³', count: 2, min: 12.5, max: 12.5, verified: 2, rejected: 0 }]);
+  assert.throws(() => verifyDecisionHistory({ ...history, versions: [archive, archive] }), { code: 'ARCHIVE_HISTORY_INVALID' });
+  assert.throws(() => verifyDecisionHistory({ ...history, versions: [archive] }), { code: 'ARCHIVE_HISTORY_INVALID' });
+  assert.throws(() => verifyDecisionHistory({ ...history, before: 2 }), { code: 'ARCHIVE_HISTORY_INVALID' });
   for (const tamper of [
     x => { x.record.data.value++; },
     x => { x.record.evidence.files[0].sha256 = hash(action); },

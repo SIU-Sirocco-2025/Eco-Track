@@ -4,6 +4,8 @@ const { exportCaseEvidence, verifyCaseEvidence } = require('./case-evidence');
 
 const collectionName = 'observation-decisions';
 const sha256 = /^[a-f0-9]{64}$/;
+const historyFormat = 'ecotrack.decision-history@1';
+const historyBytesLimit = 40 * 1024 * 1024;
 const schema = {
   version: 1,
   requireEvidence: true,
@@ -193,5 +195,47 @@ async function compareArchivedDecisions(client, sourceKey, versionA, versionB) {
     sourceOrder: 'unknown', comparableUnit, valueDelta: comparableUnit ? second.value - first.value : null };
 }
 
+async function exportDecisionHistory(client, sourceKey, before) {
+  const { items, next } = await readDecisionHistory(client, sourceKey, before);
+  if (!Array.isArray(items) || items.length > 20) fail('ARCHIVE_HISTORY_INVALID');
+  const versions = [];
+  let bytes = 0;
+  for (const { version } of items) {
+    const exported = await exportArchivedDecision(client, sourceKey, version);
+    bytes += Buffer.byteLength(JSON.stringify(exported, null, 2));
+    if (bytes > historyBytesLimit) fail('ARCHIVE_HISTORY_TOO_LARGE');
+    versions.push(exported);
+  }
+  const snapshot = { schema: historyFormat, sourceKey, before: before ?? null, next, versions };
+  verifyDecisionHistory(snapshot);
+  return snapshot;
+}
+
+function verifyDecisionHistory(snapshot) {
+  const { schema, sourceKey, before, next, versions } = snapshot;
+  if (schema !== historyFormat || typeof sourceKey !== 'string' || !sha256.test(sourceKey) ||
+      (before !== null && (!Number.isSafeInteger(before) || before < 1)) ||
+      !Array.isArray(versions) || versions.length > 20) fail('ARCHIVE_HISTORY_INVALID');
+  const entries = versions.map(verifyArchivedDecision);
+  if (before !== null && entries.length && entries[0].version >= before) fail('ARCHIVE_HISTORY_INVALID');
+  let last = entries[0]?.version + 1;
+  const byUnit = new Map();
+  for (const { version, sourceKey: key, source, decision } of entries) {
+    if (version !== last - 1 || key !== sourceKey) fail('ARCHIVE_HISTORY_INVALID');
+    last = version;
+    const totals = byUnit.get(source.unit) ?? { unit: source.unit, count: 0, min: source.value, max: source.value,
+      verified: 0, rejected: 0 };
+    totals.count++;
+    totals[decision]++;
+    totals.min = Math.min(totals.min, source.value);
+    totals.max = Math.max(totals.max, source.value);
+    byUnit.set(source.unit, totals);
+  }
+  const expectedNext = entries.length && last > 1 ? last : null;
+  if (next !== expectedNext || (next !== null && entries.length !== 20)) fail('ARCHIVE_HISTORY_INVALID');
+  return { schema, sourceKey, before, next, entries, byUnit: [...byUnit.values()] };
+}
+
 module.exports = { collectionName, schema, archiveIntent, publishDecision, publishPendingDecisions,
-  readDecisionHistory, exportArchivedDecision, verifyArchivedDecision, compareArchivedDecisions };
+  readDecisionHistory, exportArchivedDecision, verifyArchivedDecision, compareArchivedDecisions,
+  historyFormat, exportDecisionHistory, verifyDecisionHistory };
